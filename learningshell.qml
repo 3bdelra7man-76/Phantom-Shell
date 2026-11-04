@@ -183,11 +183,12 @@ PanelWindow {
                   anchors.verticalCenter: parent.verticalCenter
                   anchors.left: parent.left
                   anchors.leftMargin: 6
-                  width: audio?.muted ? 0 : (parent.width-12) * Math.min(1, audio?.volume ?? 0)
+                  property real level: audio?.muted? 0 : Math.max(0, Math.min(1, audio?.volume ?? 0))
+                  width: (parent.width-12) * level
                   height: parent.height-8
                   radius: 10
                   color: "#cba6f7"
-                  Behavior on width {enabled: showVol;NumberAnimation{duration: 300; easing.type: Easing.OutBack}}
+                  Behavior on level {enabled:showVol;NumberAnimation{duration: 300; easing.type: Easing.OutCubic}}
                   Behavior on opacity{NumberAnimation{duration: 150; easing.type: Easing.OutQuad}}
                 } 
               }
