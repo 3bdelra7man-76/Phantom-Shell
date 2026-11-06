@@ -1,0 +1,10 @@
+# Quickshell generates absolute, machine-specific QML language-server paths.
+.qmlls.ini
+.qmlcache/
+.cache/
+*.qmlc
+*.jsc
+*.log
+*~
+.idea/
+.vscode/
