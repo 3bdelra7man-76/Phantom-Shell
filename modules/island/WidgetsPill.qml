@@ -6,9 +6,11 @@ Pill {
     id: root
 
     default property alias widgets: widgetsRow.data
-    horizontalPadding: Theme.widgetPadding
-    // Collapse to zero width so the outer Row also drops its gap. Hiding this
-    // parent would hide its children and feed back into Row's size calculation.
+    minimumHeight: Theme.widgetsPillHeight
+    horizontalPadding: Theme.widgetsHorizontalPadding
+    verticalPadding: Theme.widgetsVerticalPadding
+    // Hiding this parent would also hide its children, feeding back into Row's
+    // measurement. A zero-width surface collapses without hiding the content.
     implicitWidth: {
         return widgetsRow.implicitWidth > 0 ? widgetsRow.implicitWidth + horizontalPadding * 2 : 0;
     }

@@ -1,8 +1,9 @@
 # QP
 
-A small, display-only Quickshell island: a black date/time pill and a separate
-Spotify artwork pill, centered together at the top of one screen. The Spotify
-pill disappears when Spotify closes. There are no controls, popups, or expanded
+A small, display-only Quickshell island: a black date/time notch attached to the
+top edge of one screen, with a smaller Spotify artwork pill beside its right
+shoulder. The notch stays centered on the screen as widgets appear, disappear,
+or grow. The widget pill disappears when Spotify closes. There are no controls, popups, or expanded
 states in version one.
 
 ## Runtime and launch
@@ -63,15 +64,16 @@ Start with `shell.qml`, `modules/island/Island.qml`, then `core/Config.qml` and
 | Path | Responsibility |
 | --- | --- |
 | `shell.qml` | Minimal entry point: one island window |
-| `core/Config.qml` | Date/time formats, top margin, screen preference, refresh interval |
-| `core/Theme.qml` | Colors, fonts, pill dimensions, gaps, padding, artwork size, fade duration |
+| `core/Config.qml` | Date/time formats, widget top inset, screen preference, refresh interval |
+| `core/Theme.qml` | Purple palette, notch geometry, independent widget sizes, padding and transitions |
 | `services/SpotifyService.qml` | Native Spotify discovery, stable player selection, metadata and normalized progress |
-| `components/Pill.qml` | Rounded surface with an explicit content slot and content-driven size |
-| `components/CircularArtwork.qml` | Asynchronous image, proportional crop, true circular clipping, local fallback |
+| `components/Notch.qml` | Vector silhouette, concave shoulders, rounded bottom corners and padded content slot |
+| `components/Pill.qml` | Rounded surface with an explicit content slot and configurable minimum height |
+| `components/CircularArtwork.qml` | Circular asynchronous image, fallback, optional dimming and pause bars |
 | `components/CircularProgress.qml` | Independent normalized progress ring |
-| `modules/island/IslandWindow.qml` | Screen selection, compact transparent panel, placement and input behavior |
+| `modules/island/IslandWindow.qml` | Screen selection, full-width shallow transparent panel and input behavior |
 | `modules/island/Island.qml` | Feature composition and service-to-widget bindings |
-| `modules/island/DateTimePill.qml` | Local minute-precision `SystemClock` and formatted text |
+| `modules/island/DateTimeNotch.qml` | Notch surface with a local minute-precision clock and formatted text |
 | `modules/island/WidgetsPill.qml` | Horizontal content slot for visible widgets |
 | `modules/island/SpotifyWidget.qml` | Supplied artwork/progress presentation and scoped refresh timer |
 | `scripts/check-qml.sh` | Development-only formatting and import-aware lint checks |
@@ -82,14 +84,49 @@ The clock intentionally updates once per minute, so formats containing seconds
 would also require changing its precision. Monospaced text keeps time digits
 from changing width.
 
-The starting theme uses black surfaces, white time, muted date text, 44-pixel pill
-height, 8-pixel separation, a 34-pixel artwork/ring assembly, and green progress.
-The top margin is 12 logical pixels. Sizes are logical pixels, including on
-scaled screens. Pill height can grow to accommodate larger fonts or widgets.
+The notch and widget pill stay black; artwork retains its original colors.
+Shared accent roles in `Theme.qml` are:
+
+| Token | Default / use |
+| --- | --- |
+| `accentPrimary` | `#9D00FF`, exact active progress color |
+| `accentForeground` | `#D9A6FF`, readable small foregrounds and pause bars |
+| `accentSecondary` | `#B87AE6`, date and fallback music glyph |
+| `accentMuted` | `#3E2052`, subdued ring track |
+| `textPrimary`, `textSecondary`, `progressAccent`, `progressTrack`, `pauseIcon`, `artworkGlyph` | Semantic aliases of that palette for future widgets |
+
+Geometry and placement are independent of the generic pill defaults:
+
+| Customization point | Default |
+| --- | --- |
+| `Theme.notchHeight` | 44 logical pixels |
+| `Theme.notchHorizontalPadding`, `notchVerticalPadding` | 18 / 6, inside the main body |
+| `Theme.notchBottomRadius`, `notchShoulderRadius` | 12 / 14 |
+| `Theme.notchWidgetsGap` | 8, measured after the outer right shoulder |
+| `Theme.widgetsPillHeight` | 38 |
+| `Theme.widgetsHorizontalPadding`, `widgetsVerticalPadding` | 5 / 4 |
+| `Theme.artworkDiameter` | 30, including the ring |
+| `Theme.progressWidth`, `artworkRingGap` | 1.75 / 1.5 |
+| `Config.widgetsTopInset` | 3, centering the 38-pixel pill against the 44-pixel notch |
+| `Theme.pausedOverlayOpacity`, `pauseFadeDuration` | 0.30 / 120 ms |
+| `Theme.pauseBarWidth`, `pauseBarHeight`, `pauseBarGap` | 2 / 10 / 3 |
+
+These are actual layout dimensions, without visual scale transforms. Surfaces
+can grow for larger text or widgets. The notch's implicit width includes both
+shoulders plus its padded body. `Notch.qml` uses counterclockwise quarter-circle
+arcs for the concave upper shoulders and clockwise arcs for the convex bottom
+corners. The curve renderer keeps edges clean at fractional scaling. The clock
+component was renamed from `DateTimePill.qml` to `DateTimeNotch.qml` to match it.
+
 `Config.screenName: ""` uses the platform default. Set an output name such as
 `"eDP-1"` to prefer it; a missing output falls back to the default. Selection and
-fallback stay in the window layer. The single top anchor centers the compact
-window horizontally as its content changes.
+fallback stay in the window layer. The window now anchors to the top, left, and
+right edges of that screen, with zero top margin. Its height follows the content.
+Inside it, `Island.qml` centers **only the notch** with a horizontal-center anchor;
+the widgets anchor to the notch's right edge. Widget widths never participate in
+notch positioning. The full-width transparent area uses an empty input region,
+so it passes clicks through and reserves no work area. `Config.topMargin` was
+removed: the notch must stay attached to the top; only the widgets have an inset.
 
 ## Spotify state and rendering
 
@@ -101,12 +138,22 @@ discovery. Players are ordered by bus name; a playing instance is preferred,
 and the selected instance is retained while it remains in the best tier. A new
 selection uses the first bus name in that tier.
 
-`Island.qml` passes artwork, playing state, support state, and progress to
+`Island.qml` passes artwork, playing/paused state, support state, and progress to
 `SpotifyWidget`. The service also exposes `title` and `artist` for later features.
 The artwork and progress components know nothing about MPRIS. The image loads
 asynchronously with a 96-pixel decode limit, crops proportionally, and uses
 `ClippingRectangle` to mask its actual pixels. A local music-note fallback covers
-missing, loading, and failed artwork. Pausing does not clear the image.
+missing, loading, and failed artwork. Pausing does not clear or fade the image.
+
+The service exposes `paused` only for `MprisPlaybackState.Paused`, separately
+from `playing`. Stopped or unavailable players do not count as paused.
+`SpotifyWidget` passes this to the reusable artwork's optional
+`showPauseIndicator` property. A black rectangle at **0.30 opacity** covers the
+artwork, with two lighter-purple geometry bars above it. The whole presentation
+is inside the circular clip, including when artwork is missing or loading. The
+ring is a sibling outside the dimmed area and keeps its normal brightness.
+A 120 ms opacity transition applies to the pause presentation; it leaves the
+loaded image at opacity 1.
 
 Both `MprisPlayer.position` and `length` are seconds in Quickshell. Unsupported,
 nonfinite, or nonpositive durations produce zero progress; valid ratios clamp to
@@ -141,10 +188,10 @@ Give custom widget components useful implicit sizes. `Row` owns horizontal
 placement; use vertical centering for shorter content. Set a widget's `visible`
 binding from its feature's availability. Hidden widgets and their spacing are
 excluded automatically. When no visible children have width, `WidgetsPill`
-collapses to zero width, so the outer row also drops the pill gap. It deliberately
+collapses to zero width without affecting the notch. It deliberately
 does not bind its own `visible` to the row's size: inherited invisibility would
 otherwise feed back into measurement and prevent it reopening. There is no
-widget registry or registration step.
+widget registry or registration step. Adding widgets never moves the notch.
 
 ## Developer tools
 
@@ -176,47 +223,67 @@ the second formats in place, then lints. The script looks in `PATH` and common Q
 6 binary directories; set `QT_BIN_DIR` for another installation. Generated paths
 under the session runtime directory must be regenerated after logging in again.
 
-Qt 6.12's linter exits successfully but reports three known metadata limitations:
-`PanelWindow` marked uncreatable, its `margins.top` group unresolved, and the
-generic MPRIS model's `values` member unresolved. These exact APIs load and run
+Qt 6.12's linter exits successfully but reports two known metadata limitations:
+`PanelWindow` marked uncreatable and the generic MPRIS model's `values` member
+unresolved. These exact APIs load and run
 on the tested Quickshell version. Warnings remain visible; new warnings still
 need investigation. Runtime logs are essential alongside static checks.
 
 ## Verification and remaining checks
 
-The implementation was loaded in the actual Niri session with no QML errors or
-binding loops. Native Spotify discovery, artwork and paused state were observed.
-Separate temporary MPRIS fixtures on an isolated session bus exercised browser
-rejection, deterministic instance selection, playback advance/pause/resume,
-seeking, track replacement, instance removal, unsupported positions and missing,
-zero and negative durations. Image captures checked circular transparency,
-proportional cropping, fallback, and empty/full rings. A 125% scale render also
-verified circular clipping, transparent inter-pill space, and the clockwise
-quarter arc. The local clock updated correctly across a real minute boundary.
-Layout checks confirmed
-44-pixel height, 46-pixel widget pill width, 8-pixel gap, and empty-pill collapse.
-Repeated reloads retained a single refresh timer; hiding the window stopped it.
-Wayland tracing checked the empty input region, disabled keyboard focus, and
-absence of work-area reservation.
+The updated shell loaded in the actual Niri session with no QML errors or
+binding loops; native Spotify artwork and paused presentation were observed.
+Formatting and import-aware lint checks pass with the two documented metadata
+warnings above. No system packages or compositor settings were changed.
 
-The fixture tools are development probes, kept outside the project; they add no
+Temporary MPRIS fixtures on an isolated bus verified browser rejection, stable
+instance selection, progress advance/pause/resume, seeking, track replacement,
+failed artwork, unsupported durations, and player removal. They also verified
+that stopped playback does not enable the pause presentation. Repeated reloads
+retained one refresh timer; hiding the window stopped it. Native Spotify playback
+was left untouched.
+
+Rendered image and geometry checks at 100% and 125% scale verified:
+
+- The notch is at y=0, centered on the screen, with two concave shoulders and
+  rounded bottom corners fully inside its bounds.
+- Spotify appearance/disappearance and a second 100-pixel widget do not move the
+  notch. The right pill grows normally and collapses when empty.
+- The widget measures 30 pixels across inside a 40-by-38-pixel pill, inset by 3,
+  with an 8-pixel gap after the outer shoulder.
+- Loaded artwork retains opacity 1. The black overlay is 0.30 opacity; sampled
+  artwork colors retain 70% brightness. Circular alpha clipping is preserved.
+- The pause icon has two separate vertical bars and disappears on resume. The
+  ring retains its brightness and its active color is exactly `#9D00FF`.
+- The inter-surface gap and unused full-width window area are transparent.
+
+A delayed local image response additionally checked pause presentation while an
+image was actually loading and after it became ready. The existing clock was
+previously verified across a real minute boundary. Wayland tracing verified an
+empty input region, disabled keyboard focus and no work-area reservation.
+
+The fixture tools are development probes kept outside the project; they add no
 runtime dependency or test framework. For future changes, repeat these small
 manual checks in addition to `scripts/check-qml.sh`:
 
-1. Start with Spotify closed: only the date/time pill should be centered.
+1. With Spotify closed, verify that the notch touches the screen top, both upper
+   shoulders flare outward, and the clock is centered on the screen.
 2. Open desktop Spotify, play, pause, resume, seek, and change tracks. Artwork
-   should stay visible on pause; only active supported playback should advance.
-3. Close Spotify while a browser player is active: the right pill should vanish.
-4. Edit a theme value several times: reloads should stay clean and progress should
+   should stay visible on pause, dim by 30%, and show two lighter-purple bars.
+   The purple ring should retain its brightness and freeze when paused.
+3. Add a temporary `Text` child to `WidgetsPill`, change its width, and remove it.
+   The notch must remain fixed while the pill width changes.
+4. Close Spotify while a browser player is active: only the widget pill vanishes.
+5. Edit a theme value several times: reloads should stay clean and progress should
    retain its modest cadence. Restore the value afterward.
-5. Confirm the clock across a minute boundary and the combined horizontal center.
-6. On your compositor, click through the inter-pill gap and rounded corners to a
-   known window behind it. The whole island is intentionally click-through.
+6. Confirm the local clock across a minute boundary. At fractional display scale,
+   inspect the notch shoulders, circular artwork and pause bars.
+7. Click through the gap, shoulders and unused transparent strip to a known window
+   behind it. The whole overlay is intentionally click-through.
 
 Physical pointer testing, screen hotplug/multiple outputs, X11, suspend/resume,
-timezone changes, and real Spotify seeking/closing still need user-session
-validation. The native Spotify playback was left untouched; playback transitions
-were verified with isolated fixtures instead.
+timezone changes and real Spotify control transitions still need user-session
+validation. Playback transitions were verified with isolated fixtures instead.
 
 ## Troubleshooting
 
@@ -231,7 +298,8 @@ were verified with isolated fixtures instead.
 - **Empty or frozen ring:** duration or position may be unsupported, or playback
   may be paused. Zero progress is intentional when safe computation is impossible.
 - **Overlap with an existing panel:** this overlay reserves no space and ignores
-  other panels' reservations. Adjust `Config.topMargin` yourself.
+  other panels' reservations. Adjust `Config.widgetsTopInset` for the widget pill. The notch intentionally
+  stays attached to the top edge.
 - **Editor cannot resolve `qs.*`:** recreate `.qmlls.ini`, launch the project,
   and restart `qmlls`. Use Qt tooling from the same installation as Quickshell.
 
@@ -241,4 +309,5 @@ including [MPRIS position updates](https://quickshell.org/docs/v0.3.2/types/Quic
 and [language-server setup](https://quickshell.org/docs/v0.3.2/guide/install-setup/).
 Rendering uses Qt 6.12's [Image](https://doc.qt.io/qt-6.12/qml-qtquick-image.html),
 [Shape](https://doc.qt.io/qt-6.12/qml-qtquick-shapes-shape.html), and
-[PathAngleArc](https://doc.qt.io/qt-6.12/qml-qtquick-pathanglearc.html) APIs.
+[PathAngleArc](https://doc.qt.io/qt-6.12/qml-qtquick-pathanglearc.html) and
+[PathArc](https://doc.qt.io/qt-6.12/qml-qtquick-patharc.html) APIs.

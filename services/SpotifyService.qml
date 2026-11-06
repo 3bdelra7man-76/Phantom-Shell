@@ -12,6 +12,7 @@ Singleton {
     readonly property MprisPlayer player: _selectedPlayer
     readonly property bool available: player !== null
     readonly property bool playing: available && player.isPlaying
+    readonly property bool paused: available && player.playbackState === MprisPlaybackState.Paused
     readonly property string title: available ? player.trackTitle : ""
     readonly property string artist: available ? player.trackArtist : ""
     readonly property url artworkSource: available ? player.trackArtUrl : ""

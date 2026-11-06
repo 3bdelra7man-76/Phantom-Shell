@@ -8,6 +8,7 @@ Item {
     required property url artworkSource
     required property real progress
     required property bool playing
+    required property bool paused
     required property bool progressSupported
     required property bool active
     signal refreshRequested
@@ -19,6 +20,7 @@ Item {
         anchors.fill: parent
         anchors.margins: Theme.progressWidth + Theme.artworkRingGap
         source: root.artworkSource
+        showPauseIndicator: root.paused
     }
 
     CircularProgress {
