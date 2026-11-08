@@ -6,6 +6,7 @@ Pill {
     id: root
 
     default property alias widgets: widgetsRow.data
+    readonly property real contentWidth: widgetsRow.implicitWidth
     minimumHeight: Theme.widgetsPillHeight
     horizontalPadding: Theme.widgetsHorizontalPadding
     verticalPadding: Theme.widgetsVerticalPadding

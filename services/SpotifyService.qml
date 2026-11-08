@@ -16,6 +16,14 @@ Singleton {
     readonly property string title: available ? player.trackTitle : ""
     readonly property string artist: available ? player.trackArtist : ""
     readonly property url artworkSource: available ? player.trackArtUrl : ""
+    readonly property string trackKey: available ? player.dbusName + ":" + player.uniqueId : ""
+    readonly property bool canPrevious: available && player.canControl && player.canGoPrevious
+    readonly property bool canNext: available && player.canControl && player.canGoNext
+    readonly property bool canTogglePlayback: available && player.canControl
+                                              && player.canTogglePlaying
+    // MPRIS has no CanStop flag: Stop is governed by CanControl.
+    readonly property bool canStop: available && player.canControl
+    readonly property bool canSeek: progressSupported && player.canControl && player.canSeek
 
     // Quickshell normalizes BOTH of these to seconds (MPRIS uses microseconds).
     readonly property real position: available && player.positionSupported ? player.position : 0
@@ -66,6 +74,34 @@ Singleton {
             player.positionChanged();
     }
 
+    function previous(): void {
+        if (canPrevious)
+            player.previous();
+    }
+
+    function next(): void {
+        if (canNext)
+            player.next();
+    }
+
+    function togglePlayback(): void {
+        if (canTogglePlayback)
+            player.togglePlaying();
+    }
+
+    function stop(): void {
+        if (canStop)
+            player.stop();
+    }
+
+    function seekTo(seconds: real): void {
+        if (canSeek && Number.isFinite(seconds)) {
+            player.position = Math.max(0, Math.min(duration, seconds));
+            refreshPosition();
+        }
+    }
+
+    onPlayingChanged: refreshPosition()
     onSpotifyPlayersChanged: selectPlayer()
     onPlayingPlayersChanged: selectPlayer()
     Component.onCompleted: selectPlayer()

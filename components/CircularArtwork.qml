@@ -1,3 +1,5 @@
+pragma ComponentBehavior: Bound
+
 import QtQuick
 import Quickshell.Widgets
 import qs.core
@@ -8,6 +10,7 @@ ClippingRectangle {
     required property url source
     // Presentation only: the caller decides which playback state merits this.
     property bool showPauseIndicator: false
+    property real iconScale: 1
     property int decodedSize: Theme.artworkDecodedSize
     readonly property bool ready: artwork.status === Image.Ready
 
@@ -17,11 +20,11 @@ ClippingRectangle {
     color: Theme.artworkFallback
     antialiasing: true
 
-    Text {
+    SharedText {
         anchors.centerIn: parent
         text: "♪"
         color: Theme.artworkGlyph
-        font.pixelSize: Theme.fallbackFontSize
+        font.pixelSize: Math.round(Theme.fallbackFontSize * root.iconScale)
         visible: !root.ready || artwork.opacity < 1
         opacity: 1 - pausedPresentation.opacity
     }
@@ -59,14 +62,14 @@ ClippingRectangle {
 
         Row {
             anchors.centerIn: parent
-            spacing: Theme.pauseBarGap
+            spacing: Theme.pauseBarGap * root.iconScale
 
             Repeater {
                 model: 2
 
                 Rectangle {
-                    width: Theme.pauseBarWidth
-                    height: Theme.pauseBarHeight
+                    width: Theme.pauseBarWidth * root.iconScale
+                    height: Theme.pauseBarHeight * root.iconScale
                     color: Theme.pauseIcon
                 }
             }

@@ -12,12 +12,15 @@ Item {
     property real horizontalPadding: Theme.notchHorizontalPadding
     property real verticalPadding: Theme.notchVerticalPadding
     property real bottomCornerRadius: Theme.notchBottomRadius
-    property real shoulderRadius: Theme.notchShoulderRadius
+    property real shoulderWidth: Theme.notchShoulderWidth
+    property real shoulderHeight: Theme.notchShoulderHeight
+    property real shoulderCurve: Theme.notchShoulderCurve
 
-    readonly property real shoulder: Math.max(0, shoulderRadius)
+    readonly property real shoulder: Math.max(0, shoulderWidth)
+    readonly property real shoulderDepth: Math.max(0, shoulderHeight)
     readonly property real bottomRadius: {
         const availableWidth = (width - shoulder * 2) / 2;
-        const availableHeight = height - shoulder;
+        const availableHeight = height - shoulderDepth;
         return Math.max(0, Math.min(bottomCornerRadius, availableWidth, availableHeight));
     }
 
@@ -25,7 +28,7 @@ Item {
     implicitWidth: Math.max(contentContainer.implicitWidth + horizontalPadding * 2,
                             bottomCornerRadius * 2) + shoulder * 2
     implicitHeight: Math.max(minimumHeight, contentContainer.implicitHeight + verticalPadding * 2,
-                             shoulder + bottomCornerRadius)
+                             shoulderDepth + bottomCornerRadius)
 
     Shape {
         anchors.fill: parent
@@ -42,13 +45,15 @@ Item {
                 x: root.width
                 y: 0
             }
-            // Counterclockwise arcs carve concave shoulders into the top edge.
-            PathArc {
+            // Horizontal top tangents and vertical side tangents stay smooth
+            // while shoulder spread varies independently of the notch height.
+            PathCubic {
                 x: root.width - root.shoulder
-                y: root.shoulder
-                radiusX: root.shoulder
-                radiusY: root.shoulder
-                direction: PathArc.Counterclockwise
+                y: root.shoulderDepth
+                control1X: root.width - root.shoulder * root.shoulderCurve
+                control1Y: 0
+                control2X: x
+                control2Y: y * (1 - root.shoulderCurve)
             }
             PathLine {
                 x: root.width - root.shoulder
@@ -74,14 +79,15 @@ Item {
             }
             PathLine {
                 x: root.shoulder
-                y: root.shoulder
+                y: root.shoulderDepth
             }
-            PathArc {
+            PathCubic {
                 x: 0
                 y: 0
-                radiusX: root.shoulder
-                radiusY: root.shoulder
-                direction: PathArc.Counterclockwise
+                control1X: root.shoulder
+                control1Y: root.shoulderDepth * (1 - root.shoulderCurve)
+                control2X: root.shoulder * root.shoulderCurve
+                control2Y: 0
             }
         }
     }
