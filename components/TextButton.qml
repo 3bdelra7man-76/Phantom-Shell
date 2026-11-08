@@ -13,6 +13,11 @@ T.Button {
     font.family: Theme.effectiveFontFamily
     font.pixelSize: Theme.buttonFontSize
     opacity: enabled ? 1 : Theme.disabledOpacity
+    Behavior on opacity {
+        NumberAnimation {
+            duration: Theme.hoverFeedbackDuration
+        }
+    }
 
     contentItem: SharedText {
         id: label

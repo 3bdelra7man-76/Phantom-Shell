@@ -1,5 +1,6 @@
 import QtQuick
 import Quickshell
+import Quickshell.Wayland
 import qs.core
 
 PanelWindow {
@@ -14,9 +15,12 @@ PanelWindow {
         left: true
         right: true
     }
-    implicitHeight: Math.ceil(island.implicitHeight)
+    // Resizing a Wayland surface on every frame stalls configure/commit cycles
+    // on Niri. Reserve a fixed transparent canvas; the input mask stays compact.
+    implicitHeight: Math.ceil(island.expandedHeight + Theme.screenFrameWidth)
     color: "transparent"
-    aboveWindows: true
+    WlrLayershell.layer: WlrLayer.Overlay
+    WlrLayershell.namespace: "qp-island"
     focusable: false
     exclusionMode: ExclusionMode.Ignore
     // Only the compact artwork and expanded solid body receive input. Shoulder
@@ -49,5 +53,18 @@ PanelWindow {
         id: island
         anchors.fill: parent
         active: root.visible && root.backingWindowVisible
+    }
+
+    ScreenFrameWindow {
+        screen: root.screen
+        visible: root.visible
+        openingWidth: island.frameOpeningWidth
+    }
+
+    OutsideClickCatcher {
+        screen: root.screen
+        armed: root.backingWindowVisible && island.expanded
+        dragging: island.dragging
+        onDismissRequested: island.expanded = false
     }
 }

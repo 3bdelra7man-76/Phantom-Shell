@@ -14,13 +14,11 @@ Item {
     required property bool canPrevious
     required property bool canNext
     required property bool canTogglePlayback
-    required property bool canStop
     required property bool canSeek
     readonly property bool dragging: timeline.dragging
     signal previousRequested
     signal nextRequested
     signal toggleRequested
-    signal stopRequested
     signal seekRequested(real seconds)
 
     implicitWidth: Theme.musicContentWidth
@@ -67,25 +65,26 @@ Item {
         y: timeline.y + timeline.height + Theme.musicSectionGap
         spacing: Theme.controlGap
 
-        TextButton {
-            text: "Prev"
-            Accessible.name: "Previous track"
+        IconButton {
+            glyph: "previous"
+            actionName: "Previous track"
             enabled: root.canPrevious
             onClicked: root.previousRequested()
         }
-        TextButton {
-            text: root.playing ? "Pause" : "Play"
+        IconButton {
+            glyph: root.playing ? "pause" : "play"
+            actionName: root.playing ? "Pause" : "Play"
             enabled: root.canTogglePlayback
             onClicked: root.toggleRequested()
         }
-        TextButton {
-            text: "Stop"
-            enabled: root.canStop
-            onClicked: root.stopRequested()
+        // Retain the three surviving buttons' positions and 38px hit areas.
+        Item {
+            width: Theme.controlIconButtonSize
+            height: Theme.controlIconButtonSize
         }
-        TextButton {
-            text: "Next"
-            Accessible.name: "Next track"
+        IconButton {
+            glyph: "next"
+            actionName: "Next track"
             enabled: root.canNext
             onClicked: root.nextRequested()
         }

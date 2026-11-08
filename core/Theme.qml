@@ -49,26 +49,33 @@ Singleton {
 
     // Reduce the old 44px height once: one pixel above and below the header.
     property real notchHeight: 42
-    property real notchHorizontalPadding: 18
+    property real notchHorizontalPadding: 22
     property real notchVerticalPadding: 6
-    property real notchBottomRadius: 12
-    property real notchShoulderWidth: 26
-    property real notchShoulderHeight: 14
+    property real notchBottomRadius: 30
+    property real notchShoulderWidth: 30
+    property real notchShoulderHeight: 20
     property real notchShoulderCurve: 0.55
-    property real notchWidgetsGap: 8
+    property real musicShoulderWidth: 76
+    property real musicShoulderHeight: 50
+    property real musicShoulderCurve: 0.62
+    // Measured from the compact body, not the outer top shoulder tip.
+    property real notchWidgetsGap: 16
+    property real screenFrameWidth: 2.0
+    property real screenFrameOpacity: 0.20
+    property color screenFrameColor: textPrimary
 
     // Generic pill defaults are independent of the compact widgets pill.
-    property real pillHeight: 44
-    property real pillPadding: 16
-    property real pillVerticalPadding: 5
-    property real widgetsPillHeight: 38
-    property real widgetsHorizontalPadding: 5
+    property real pillHeight: 42
+    property real pillPadding: 12
+    property real pillVerticalPadding: 2
+    property real widgetsPillHeight: 36
+    property real widgetsHorizontalPadding: 4
     property real widgetsVerticalPadding: 4
     property real dateTimeGap: 12
     property real widgetGap: 8
     property real artworkDiameter: 30
     property int artworkDecodedSize: 96
-    property real progressWidth: 1.75
+    property real progressWidth: 1.95
     property real artworkRingGap: 1.5
     property real pausedOverlayOpacity: 0.30
     property real pauseBarWidth: 2
@@ -92,15 +99,30 @@ Singleton {
     property real controlPadding: 12
     property real controlGap: 8
     property real controlRadius: 10
+    property real controlIconSize: 20
+    property real controlIconButtonSize: 38
+    property real controlGlyphIdleOpacity: 0.85
+    property real controlGlyphPressedOpacity: 0.60
     property real disabledOpacity: 0.35
     property real timelineHeight: 42
     property real timelineHitHeight: 20
     property real timelineTrackHeight: 3
     property real timelineThumbDiameter: 10
-    property int transitionDuration: 260
-    property int contentFadeDuration: 90
-    property int contentExitDuration: 40
+    property int transitionDuration: 240
+    property real contentRevealStart: 0.65
     property int hoverFeedbackDuration: 90
-    property int pointerExitDelay: 120
-    property int openingGraceDuration: 400
+    property real backgroundArtworkOpacity: 0.40
+    property int backgroundDecodedSize: 1024
+    property real backgroundScrimOpacity: 0.12
+    property real headerShadowOpacity: 0.85
+    property real headerShadowExtraHeight: 8
+    property real graphOpacity: 0.20
+    property color graphColor: accentSecondary
+    property int graphBarCount: 32
+    property real graphHeight: 54
+    property real graphBarGap: 3
+    property int graphUpdateInterval: 80
+    property real artworkGlowOpacity: 0.18
+    property real artworkGlowBlur: 12
+    property real artworkGlowSpread: 1
 }

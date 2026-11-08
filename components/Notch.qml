@@ -15,6 +15,11 @@ Item {
     property real shoulderWidth: Theme.notchShoulderWidth
     property real shoulderHeight: Theme.notchShoulderHeight
     property real shoulderCurve: Theme.notchShoulderCurve
+    property real outlineSpan: width
+    readonly property real topInset: Theme.screenFrameWidth / 2
+    property Component background: null
+    property bool backgroundActive: false
+    readonly property alias backgroundItem: backdrop.item
 
     readonly property real shoulder: Math.max(0, shoulderWidth)
     readonly property real shoulderDepth: Math.max(0, shoulderHeight)
@@ -30,65 +35,75 @@ Item {
     implicitHeight: Math.max(minimumHeight, contentContainer.implicitHeight + verticalPadding * 2,
                              shoulderDepth + bottomCornerRadius)
 
+    Rectangle {
+        id: paintLayer
+        anchors.fill: parent
+        color: root.color
+        visible: backdrop.active
+        Loader {
+            id: backdrop
+            anchors.fill: parent
+            active: root.backgroundActive && root.background !== null
+            sourceComponent: root.background
+        }
+    }
+
+    ShaderEffectSource {
+        id: backgroundTexture
+        width: root.width
+        height: root.height
+        sourceItem: backdrop.active ? paintLayer : null
+        hideSource: true
+        visible: false
+        smooth: true
+    }
+
+    // The contour starts at the inset frame centerline. This narrow cap
+    // keeps the black surface attached to y=0 without clipping the frame stroke.
+    Rectangle {
+        width: root.width
+        height: root.topInset
+        color: root.color
+    }
+
     Shape {
         anchors.fill: parent
         preferredRendererType: Shape.CurveRenderer
-
-        ShapePath {
+        NotchContour {
+            surfaceWidth: root.width
+            surfaceHeight: root.height
+            shoulderWidth: root.shoulder
+            shoulderHeight: root.shoulderDepth
+            shoulderCurve: root.shoulderCurve
+            bottomRadius: root.bottomRadius
+            topInset: root.topInset
             fillColor: root.color
+            fillItem: backdrop.active ? backgroundTexture : null
             strokeColor: "transparent"
-            strokeWidth: 0
-            startX: 0
-            startY: 0
+        }
+    }
 
-            PathLine {
-                x: root.width
-                y: 0
-            }
-            // Horizontal top tangents and vertical side tangents stay smooth
-            // while shoulder spread varies independently of the notch height.
-            PathCubic {
-                x: root.width - root.shoulder
-                y: root.shoulderDepth
-                control1X: root.width - root.shoulder * root.shoulderCurve
-                control1Y: 0
-                control2X: x
-                control2Y: y * (1 - root.shoulderCurve)
-            }
-            PathLine {
-                x: root.width - root.shoulder
-                y: root.height - root.bottomRadius
-            }
-            PathArc {
-                x: root.width - root.shoulder - root.bottomRadius
-                y: root.height
-                radiusX: root.bottomRadius
-                radiusY: root.bottomRadius
-                direction: PathArc.Clockwise
-            }
-            PathLine {
-                x: root.shoulder + root.bottomRadius
-                y: root.height
-            }
-            PathArc {
-                x: root.shoulder
-                y: root.height - root.bottomRadius
-                radiusX: root.bottomRadius
-                radiusY: root.bottomRadius
-                direction: PathArc.Clockwise
-            }
-            PathLine {
-                x: root.shoulder
-                y: root.shoulderDepth
-            }
-            PathCubic {
-                x: 0
-                y: 0
-                control1X: root.shoulder
-                control1Y: root.shoulderDepth * (1 - root.shoulderCurve)
-                control2X: root.shoulder * root.shoulderCurve
-                control2Y: 0
-            }
+    // Only this local contour changes. The rest of the screen frame is static.
+    Shape {
+        x: (root.width - width) / 2
+        width: root.outlineSpan
+        height: root.height + Theme.screenFrameWidth
+        preferredRendererType: Shape.CurveRenderer
+        NotchContour {
+            surfaceWidth: root.width
+            surfaceHeight: root.height
+            shoulderWidth: root.shoulder
+            shoulderHeight: root.shoulderDepth
+            shoulderCurve: root.shoulderCurve
+            bottomRadius: root.bottomRadius
+            topInset: root.topInset
+            offsetX: (root.outlineSpan - root.width) / 2
+            leftExtension: offsetX
+            rightExtension: offsetX
+            closeTop: false
+            fillColor: "transparent"
+            strokeColor: Qt.alpha(Theme.screenFrameColor, Theme.screenFrameOpacity)
+            strokeWidth: Theme.screenFrameWidth
         }
     }
 
