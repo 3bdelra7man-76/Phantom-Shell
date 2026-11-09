@@ -22,13 +22,16 @@ PanelWindow {
     WlrLayershell.layer: WlrLayer.Top
     WlrLayershell.namespace: "qp-dismissal"
 
-    // The overlay panel above this surface receives inside presses. The first
-    // outside click is consumed here. Complete its release before unmapping so
-    // the compositor can end the pointer grab and route the next click normally.
-    MouseArea {
+    // A passive grab survives Qt's window-deactivation cleanup when the
+    // OnDemand editor loses focus. Close on release so the compositor finishes
+    // its pointer grab before this window unmaps; the following click passes.
+    Item {
         anchors.fill: parent
-        enabled: !root.dragging
-        acceptedButtons: Qt.AllButtons
-        onClicked: root.dismissRequested()
+        TapHandler {
+            enabled: !root.dragging
+            acceptedButtons: Qt.AllButtons
+            gesturePolicy: TapHandler.DragThreshold
+            onTapped: root.dismissRequested()
+        }
     }
 }

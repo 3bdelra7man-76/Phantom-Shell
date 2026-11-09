@@ -77,11 +77,6 @@ Item {
             enabled: root.canTogglePlayback
             onClicked: root.toggleRequested()
         }
-        // Retain the three surviving buttons' positions and 38px hit areas.
-        Item {
-            width: Theme.controlIconButtonSize
-            height: Theme.controlIconButtonSize
-        }
         IconButton {
             glyph: "next"
             actionName: "Next track"

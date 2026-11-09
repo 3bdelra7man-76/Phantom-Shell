@@ -75,7 +75,7 @@ Item {
             id: seekArea
             anchors.fill: parent
             enabled: root.enabled && root.seekable && root.validDuration
-            cursorShape: Qt.PointingHandCursor
+            cursorShape: root.seekable ? Qt.SizeHorCursor : Qt.ArrowCursor
             onPressed: mouse => {
                 root._dragContext = root.contextKey;
                 root._dragPosition = root.secondsAt(mouse.x);

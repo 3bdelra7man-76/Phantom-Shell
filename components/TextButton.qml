@@ -9,6 +9,11 @@ T.Button {
                             * 2)
     implicitHeight: Theme.controlHeight
     hoverEnabled: true
+    HoverHandler {
+        enabled: root.enabled
+        cursorShape: Qt.PointingHandCursor
+        blocking: false
+    }
     focusPolicy: Qt.NoFocus
     font.family: Theme.effectiveFontFamily
     font.pixelSize: Theme.buttonFontSize

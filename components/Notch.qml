@@ -58,11 +58,12 @@ Item {
         smooth: true
     }
 
-    // The contour starts at the inset frame centerline. This narrow cap
-    // keeps the black surface attached to y=0 without clipping the frame stroke.
+    // Black underlay joins the fixed frame across the changing top connectors.
+    // The open outline still leaves the notch body attached to the screen.
     Rectangle {
-        width: root.width
-        height: root.topInset
+        x: (root.width - width) / 2
+        width: root.outlineSpan
+        height: Theme.screenFrameWidth
         color: root.color
     }
 

@@ -17,15 +17,21 @@ PanelWindow {
     }
     // Resizing a Wayland surface on every frame stalls configure/commit cycles
     // on Niri. Reserve a fixed transparent canvas; the input mask stays compact.
-    implicitHeight: Math.ceil(island.expandedHeight + Theme.screenFrameWidth)
+    implicitHeight: Math.ceil(island.canvasHeight)
     color: "transparent"
     WlrLayershell.layer: WlrLayer.Overlay
     WlrLayershell.namespace: "qp-island"
-    focusable: false
+    WlrLayershell.keyboardFocus: island.todoOpen ? WlrKeyboardFocus.OnDemand : WlrKeyboardFocus.None
     exclusionMode: ExclusionMode.Ignore
     // Only the compact artwork and expanded solid body receive input. Shoulder
     // cutouts and the unused full-width strip always pass through to the desktop.
     mask: Region {
+        Region {
+            x: Math.floor(island.todoInputX)
+            y: Math.floor(island.todoInputY)
+            width: Math.ceil(island.todoTrigger.width)
+            height: Math.ceil(island.todoTrigger.height)
+        }
         Region {
             x: Math.floor(island.musicPresentation.x)
             y: Math.floor(island.musicPresentation.y)
@@ -65,6 +71,6 @@ PanelWindow {
         screen: root.screen
         armed: root.backingWindowVisible && island.expanded
         dragging: island.dragging
-        onDismissRequested: island.expanded = false
+        onDismissRequested: island.closePanel()
     }
 }

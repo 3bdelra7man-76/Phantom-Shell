@@ -125,4 +125,40 @@ Singleton {
     property real artworkGlowOpacity: 0.18
     property real artworkGlowBlur: 12
     property real artworkGlowSpread: 1
+
+    // New feature settings; existing tuned geometry and timing stay independent.
+    property real screenFrameInnerRadius: 18
+    property real todoWidgetSize: artworkDiameter
+    property real todoContentWidth: 504
+    property real todoPadding: 20
+    property real todoTopGap: 10
+    property real todoBottomPadding: 16
+    property real todoSectionGap: 10
+    property real todoListHeight: 220
+    property real todoScrollBarWidth: 3
+    property real todoRowHeight: 40
+    property real todoActionSize: 30
+    property real todoFieldHeight: 36
+    property real todoFieldPadding: 10
+    property real todoFieldRadius: 8
+    property int todoFontSize: 13
+    property color todoSurface: "#111114"
+    property color todoText: "#EDEBF2"
+    property color todoMutedText: "#96929E"
+    property color todoFieldBackground: todoSurface
+    property color todoCompletedText: todoMutedText
+    property color todoSeparator: "#16FFFFFF"
+    property color todoHoverTint: Qt.alpha(accentForeground, 0.05)
+    property color todoSelectedTint: Qt.alpha(accentPrimary, 0.16)
+    property real todoRowPadding: 12
+    property real todoSurfaceRadius: 10
+    property real todoHeaderHeight: 28
+    property real todoFilterHeight: 32
+    property real todoStatusHeight: 32
+    property real todoScreenMargin: 20
+    property real todoTooltipWidth: 440
+    property int panelSwitchFadeDuration: 90
+    property int tooltipDelay: 500
+    property real tooltipGap: 4
+    property color screenFrameFill: surfaceBackground
 }
