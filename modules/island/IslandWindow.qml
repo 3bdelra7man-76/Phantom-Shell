@@ -2,9 +2,12 @@ import QtQuick
 import Quickshell
 import Quickshell.Wayland
 import qs.core
+import qs.modules.calendar
 
 PanelWindow {
     id: root
+    readonly property alias islandItem: island
+    readonly property alias calendarWindow: calendar
 
     // An empty or unmatched name lets the platform choose its default screen.
     screen: Quickshell.screens.find(output => output.name === Config.screenName) ?? null
@@ -21,16 +24,16 @@ PanelWindow {
     color: "transparent"
     WlrLayershell.layer: WlrLayer.Overlay
     WlrLayershell.namespace: "qp-island"
-    WlrLayershell.keyboardFocus: island.todoOpen ? WlrKeyboardFocus.OnDemand : WlrKeyboardFocus.None
+    WlrLayershell.keyboardFocus: WlrKeyboardFocus.None
     exclusionMode: ExclusionMode.Ignore
     // Only the compact artwork and expanded solid body receive input. Shoulder
     // cutouts and the unused full-width strip always pass through to the desktop.
     mask: Region {
         Region {
-            x: Math.floor(island.todoInputX)
-            y: Math.floor(island.todoInputY)
-            width: Math.ceil(island.todoTrigger.width)
-            height: Math.ceil(island.todoTrigger.height)
+            x: Math.floor(island.calendarInputX)
+            y: Math.floor(island.calendarInputY)
+            width: Math.ceil(island.calendarTrigger.width)
+            height: Math.ceil(island.calendarTrigger.height)
         }
         Region {
             x: Math.floor(island.musicPresentation.x)
@@ -67,9 +70,16 @@ PanelWindow {
         openingWidth: island.frameOpeningWidth
     }
 
+    CalendarWindow {
+        id: calendar
+        screen: root.screen
+        opened: island.calendarOpen && root.backingWindowVisible
+        onDismissRequested: island.closePanel()
+    }
+
     OutsideClickCatcher {
         screen: root.screen
-        armed: root.backingWindowVisible && island.expanded
+        armed: root.backingWindowVisible && island.activePanel !== ""
         dragging: island.dragging
         onDismissRequested: island.closePanel()
     }

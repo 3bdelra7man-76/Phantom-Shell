@@ -128,35 +128,56 @@ Singleton {
 
     // New feature settings; existing tuned geometry and timing stay independent.
     property real screenFrameInnerRadius: 18
-    property real todoWidgetSize: artworkDiameter
-    property real todoContentWidth: 504
-    property real todoPadding: 20
-    property real todoTopGap: 10
-    property real todoBottomPadding: 16
-    property real todoSectionGap: 10
-    property real todoListHeight: 220
-    property real todoScrollBarWidth: 3
-    property real todoRowHeight: 40
-    property real todoActionSize: 30
-    property real todoFieldHeight: 36
-    property real todoFieldPadding: 10
-    property real todoFieldRadius: 8
-    property int todoFontSize: 13
-    property color todoSurface: "#111114"
-    property color todoText: "#EDEBF2"
-    property color todoMutedText: "#96929E"
-    property color todoFieldBackground: todoSurface
-    property color todoCompletedText: todoMutedText
-    property color todoSeparator: "#16FFFFFF"
-    property color todoHoverTint: Qt.alpha(accentForeground, 0.05)
-    property color todoSelectedTint: Qt.alpha(accentPrimary, 0.16)
-    property real todoRowPadding: 12
-    property real todoSurfaceRadius: 10
-    property real todoHeaderHeight: 28
-    property real todoFilterHeight: 32
-    property real todoStatusHeight: 32
-    property real todoScreenMargin: 20
-    property real todoTooltipWidth: 440
+    // Calendar settings are independent of the tuned music/notch values.
+    property real calendarWidgetSize: artworkDiameter
+    property real calendarWidthRatio: 0.70
+    property real calendarHeightRatio: 0.45
+    property real calendarMinimumWidth: 860
+    property real calendarMinimumHeight: 420
+    property real calendarScreenMargin: 24
+    property real calendarRadius: 28
+    property real calendarPadding: 20
+    property real calendarGap: 12
+    property real calendarHeaderHeight: 44
+    property real calendarStatusHeight: 22
+    property real calendarStackBreakpoint: 880
+    property real calendarGridMinimumHeight: 300
+    property real calendarAgendaMinimumHeight: 250
+    property real calendarGridFraction: 0.62
+    property real calendarWeekdayHeight: 24
+    property real calendarDayHeaderHeight: 22
+    property real calendarBandHeight: 12
+    property int calendarBandFontSize: 10
+    property real calendarBandGap: 3
+    property real calendarBandRadius: 4
+    property real calendarBandOpacity: 0.40
+    property int calendarMaxBands: 3
+    property real calendarDateDiameter: 22
+    property real calendarColorDotSize: 10
+    property real calendarTaskHeight: 40
+    property real calendarGoalHeaderHeight: 62
+    property real calendarTaskAddHeight: 50
+    property real calendarActionSize: 30
+    property real calendarRowPadding: 10
+    property real calendarSurfaceRadius: 12
+    property real calendarHeaderActionWidth: 112
+    property int calendarTitleFontSize: 20
+    property int calendarFontSize: 13
+    property real calendarTooltipWidth: 440
+    property int calendarTransitionDuration: 160
+    property color calendarBackground: "#09090C"
+    property color calendarSurface: "#111114"
+    property color calendarText: "#EDEBF2"
+    property color calendarMutedText: "#96929E"
+    property color calendarSeparator: "#16FFFFFF"
+    property color calendarHoverTint: Qt.alpha(accentForeground, 0.05)
+    property color calendarSelectedTint: Qt.alpha(accentPrimary, 0.16)
+    property list<string> calendarGoalColors: ["#9D00FF", "#528BFF", "#26BFA6", "#E5AB42", "#ED709B",
+        "#B87AE6"]
+    property real inputHeight: 36
+    property real inputPadding: 10
+    property real inputRadius: 8
+    property int inputFontSize: 13
     property int panelSwitchFadeDuration: 90
     property int tooltipDelay: 500
     property real tooltipGap: 4

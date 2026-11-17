@@ -52,46 +52,52 @@
   rounds the inner opening. Offset the stroke into the black fill with matching
   corner centers/inner edges. Check all four black silhouettes with the outline
   hidden; tinted corner strokes alone do not round the opaque fill.
-- Island.activePanel (empty/music/todo) is the interaction source of truth;
-  expanded is derived. _closingPanel only retains content during closing. Its reveal animation
-  drives notch size and a SINGLE migrating SpotifyWidget. Preserve declarative,
-  reversible transitions; avoid timer-driven animation sequences and duplicate
-  media items. Keep the header visible; disable hidden/transitioning controls.
-  Fade content with the final part of reveal, not an extra sequential animation.
-- Keep the canvas at the maximum music/to-do height and frame opening at the
-  maximum width, independent of activePanel. Animate local surface dimensions on
-  panel switches. The Spotify item still migrates once; the checklist always
-  remains available. Preserve existing tuned Theme/Config values; add new tokens.
-- TaskStore owns versioned JSON, stable IDs, validation and persistence under
-  Quickshell.dataDir. UI passes IDs, never filtered indexes. Gate edits on ready.
-  Its native ListModel is canonical; mutate affected roles/rows without replacing
-  the model. Maintain the active count with commits. Snapshot into plain JS objects
-  before JSON.stringify: direct QML list<var> serialization caused a measured 4.6s
-  stall with 1,000 tasks. Defer/coalesce serialization using Qt.callLater.
-  Serialize async atomic FileView writes with at most one in flight; coalesce
-  pending changes. Handle identical text (no saved signal), and reread FileView's
-  cached disk text before retrying failed saves without replacing pending tasks.
-  Never overwrite invalid/unsupported task files; show errors and an explicit Retry.
-- TodoPanel coordinates filters/edit draft/Escape; TodoTaskRow emits ID-scoped
-  actions. Use the native SortFilterProxyModel/ValueFilter supported by Qt 6.12
-  (technology preview; recheck on upgrades). Keep the header, full-width quick
-  input, filters and status fixed around the bounded, reusable ListView. Incubate
-  the list asynchronously after the first opening, then retain it. Row height and
-  panel height have fixed theme owners, independent of text/row measurements.
-  Keep checkbox/actions in fixed columns; editor and elided title share a flexible
-  column. Load only the edited row's field and hovered elided title's tooltip;
-  release editors on pooling, retaining draft/ID in TodoPanel. Completed text is
-  gray and struck through with a purple checkmark. Cancel edits before Escape
-  dismissal. Prefer todo* semantic color/sizing tokens over music colors.
-  todoContentWidth is preferred; cap the full surface, including shoulders, to
-  the screen minus todoScreenMargin. Preserve existing music/notch tuning.
+- Island.activePanel (empty/music/calendar) is the interaction source of truth.
+  Only music expands the notch; CalendarWindow is a separate centered surface on
+  IslandWindow's screen. CalendarOpen is derived; never add a second independent
+  open flag or a standalone checklist/task store. One reveal still drives the
+  notch and SINGLE migrating SpotifyWidget. Preserve reversible bindings and tuned
+  music/geometry/timing. Hidden or transitioning controls must not accept input.
+  The fixed canvas/frame opening is sized for music only, independent of activePanel.
+- CalendarWindow owns centered sizing (70% width / 45% height, bounded by screen
+  margins), rounded input mask, local fade and OnDemand keyboard policy. Keep the
+  window's native dimensions fixed during fades. CalendarPanel owns selected date,
+  month navigation and editor coordination; its month is derived from selection.
+  At small sizes stack grid/details and scroll content; header/status remain fixed.
+  Give layout dimensions one owner; never measure parent height from children
+  whose height refers back to the parent, including transient responsive changes.
+- CalendarStore owns native goal/task models, stable IDs, strict validation and
+  versioned calendar.json under Quickshell.dataDir. Tasks belong to goal ID + local
+  YYYY-MM-DD date. Gate edits on ready. Use plain JS snapshots for JSON; direct
+  QML list<var> serialization previously caused a 4.6s stall with 1,000 tasks.
+  Defer/coalesce writes with Qt.callLater; serialize async atomic FileView writes
+  with at most one in flight. Handle identical text (no saved signal), and reread
+  FileView's disk cache before retrying saves without replacing pending data.
+  Never overwrite invalid/unsupported files; show errors and explicit Retry.
+  The legacy tasks.json file is left untouched; there is no implicit migration.
+- CalendarDates.js owns strict civil-date parsing, noon-based local day arithmetic,
+  UTC ordinals and inclusive 1–30 day ranges. Never parse ISO keys as UTC timestamps
+  or advance by 24-hour milliseconds. MonthGrid always has 42 Monday-first cells.
+  Pack weekly bands deterministically by start/ID; compact lanes between weeks.
+  Today/selection remain distinct above colored bands. Overflow must never hide
+  goals from the selected-day agenda.
+- GoalEditor holds a mutable draft, shows inclusive end-date preview and lists
+  excluded tasks/dates before destructive range edits. CalendarStore requires the
+  exact reviewed task signature, rejecting stale confirmations. Keep Save visible
+  outside scrolling fields. Goal deletion explicitly includes all that goal's tasks.
+- DayAgenda uses a bounded reusable ListView with lightweight heterogeneous rows;
+  editing/add drafts use goal/task IDs, never view indexes. Pooling releases row
+  editors; scrolling must never attach a draft to another task. CalendarTaskRow
+  uses a lazy editor/full-title tooltip, fixed checkbox/action columns and flexible
+  elided text. Completed text is gray/struck through with a purple checkmark.
+  Escape cancels an active editor first, then dismisses the calendar.
 - Every enabled button inherits a nonblocking pointing-hand HoverHandler from
   TextButton, including IconButton. Custom triggers must set the same cursor.
   SharedTextField keeps an I-beam; PlaybackTimeline keeps its horizontal drag
   cursor. Hover handlers must not steal clicks, selection or drag grabs.
-- Only To-do requests WlrKeyboardFocus.OnDemand; release with None on close or
-  music switch. No Exclusive focus. Niri requires a text-field click to focus the
-  native window after opening; QML forceActiveFocus selects the editor within it.
+- Only CalendarWindow requests WlrKeyboardFocus.OnDemand; release with None on
+  close or music switch. No Exclusive focus. On Niri click inside the calendar to
+  focus its native window; QML forceActiveFocus selects the editor within it.
 - Keep one periodic 1Hz progress Timer in Island for both presentation states,
   stopped when hidden/paused/unsupported. Quickshell position/length are seconds.
   Emit documented positionChanged() for local extrapolation; no command/D-Bus
@@ -113,7 +119,7 @@
   cutouts and the unused strip click-through. Add corresponding regions for new
   interactive widgets. The only intentional full-screen input surface is the
   catcher while open. Preserve the keyboard policy above and no work reservation.
-  Todo hit coordinates must bind to explicit ancestor/Row coordinates: a plain
+  Calendar trigger hit coordinates must bind to explicit ancestor/Row coordinates: a plain
   mapToItem() call does not track animated ancestor geometry for native masks.
 - Preserve true circular clipping via ClippingRectangle, async image loading and
   a stable decoded image size during movement. A normal rounded Rectangle with
@@ -139,7 +145,8 @@
   proportional to the project; avoid widget registries or speculative frameworks.
 - Bootstrap with `touch .qmlls.ini` and `quickshell --path .`. Validate QML edits
   with `scripts/check-qml.sh --format`, `scripts/check-qml.sh`, and
-  `bash -n scripts/check-qml.sh`. Existing Qt metadata warning categories are documented
+  `bash -n scripts/check-qml.sh`. Run pure date tests with
+  `QT_QPA_PLATFORM=offscreen QT_QPA_PLATFORMTHEME= /usr/lib/qt6/bin/qmltestrunner -input tests`. Existing Qt metadata warning categories are documented
   in README; investigate new ones and pair static checks with runtime loading.
 - Runtime: `quickshell --path . --no-duplicate --no-color`. Follow README's pointer,
   geometry, font, playback, drag, mask and reload checklist. Use isolated MPRIS

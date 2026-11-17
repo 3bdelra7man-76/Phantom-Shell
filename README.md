@@ -1,11 +1,10 @@
 # QP
 
-A personal Quickshell notch with a local date/time header, Spotify artwork and a
-compact checklist widget. Click music or **To-do** to open its panel inside the
-centered notch. Music has metadata, seeking and three floating playback controls;
-tasks support inline editing, completion, filters and local persistence.
-Moving away leaves either panel open; clicking outside closes it. The passive
-screen frame stays flush to the display with a rounded inner opening.
+A personal Quickshell date/time notch, compact Spotify widget and calendar trigger.
+Music expands into the centered notch with artwork, metadata, seeking and three
+floating playback controls. The calendar opens a separate, centered monthly goal
+planner on the same screen. Both close on an outside click, consuming that first
+click; moving the pointer away leaves them open.
 
 ## Run
 
@@ -69,7 +68,7 @@ The existing `FontLoader` loads that portable URL and uses its actual family
 name. Keep any font's license with the file. An empty URL uses installed fonts.
 
 All text goes through `components/SharedText.qml`, including artwork fallback,
-clock, metadata, timeline labels, tasks and text button labels. Editable text uses
+clock, metadata, timeline labels, calendar entries and text button labels. Editable text uses
 `SharedTextField.qml` with the same shared font preference. It uses
 `Theme.effectiveFontFamily`, plain text, and tabular numerals where supported.
 Icon controls use local vector paths and accessible action names; text buttons
@@ -79,268 +78,176 @@ The header keeps the existing 12-pixel date and 14-pixel time; metadata uses
 
 ## Architecture
 
-Start with `shell.qml`, `modules/island/Island.qml`, and `core/Theme.qml`.
+`shell.qml` creates `IslandWindow`; start reading there, `Island.qml`, and `Theme.qml`.
 
 | File | Responsibility |
 | --- | --- |
-| `shell.qml` | One island window |
-| `core/Config.qml` | Date/time formats, output preference, widget inset, refresh interval |
-| `core/Theme.qml` | Typography/font loading, colors, geometry and animation tokens |
-| `services/TaskStore.qml` | Incremental ListModel, stable IDs, validation and versioned atomic FileView saves |
-| `services/SpotifyService.qml` | Discovery, stable selection, metadata, capabilities and guarded native commands |
-| `services/SpotifyAudioMonitor.qml` | Scoped native peak capture from a strictly identified Spotify output stream |
-| `components/Notch.qml`, `NotchContour.qml` | Shared contour for black base, clipped textured fill and open notch outline |
-| `components/ScreenFrameContour.qml` | Shared rounded desktop-opening contour for the opaque frame fill and its inner-edge outline |
-| `components/Pill.qml` | Rounded content surface with configurable padding/minimum height |
-| `components/SharedText.qml` | Shared typography and plain-text defaults |
-| `components/SharedTextField.qml` | Consistent editable text, selection and focus styling |
-| `components/TextButton.qml` | Shared button surface, disabled and animated hover/pressed styling |
-| `components/IconButton.qml`, `PlaybackIcon.qml` | Shared local vectors and accessible floating buttons, optional tooltip |
-| `components/MusicGraph.qml` | Low-profile peak-history or decorative graph, independent of Spotify |
-| `components/CircularArtwork.qml` | Asynchronous circular image, fallback, optional paused presentation |
-| `components/CircularProgress.qml` | Clamped normalized progress ring, independent of Spotify |
-| `components/PlaybackTimeline.qml` | Position display, elapsed/total labels and drag preview/seek request |
-| `modules/island/IslandWindow.qml` | Screen, fixed-size transparent canvas and animated input regions |
-| `modules/island/ScreenFrameWindow.qml` | Static, passive outer screen frame, with an opening for the local notch contour |
-| `modules/island/Island.qml` | One active panel state, shared transitions, widget composition, services and one progress refresh timer |
-| `modules/island/OutsideClickCatcher.qml` | Temporary screen-local outside-click dismissal below the interactive overlay |
-| `modules/island/MusicBackdrop.qml` | Artwork/scrim/graph composition supplied to the notch texture fill |
-| `modules/island/DateTimeHeader.qml` | Local minute-precision clock and date/time row |
-| `modules/island/WidgetsPill.qml` | Extensible horizontal container for visible widgets |
-| `modules/island/SpotifyWidget.qml` | One artwork/ring presentation used in both states |
-| `modules/island/ExpandedMusicPanel.qml` | Metadata, timeline and centered Previous / Play-Pause / Next row |
-| `modules/island/TodoPanel.qml` | Quick entry, native filtered model, bounded reusable ListView and ID-based edit coordination |
-| `modules/island/TodoTaskRow.qml` | Fixed checkbox/action columns, elided title, lazy editor and full-title tooltip |
+| `core/Config.qml` | Date/time formats, output preference, widget inset and progress refresh interval |
+| `core/Theme.qml` | Shared Sharphy/fallback typography, palette, geometry and animation settings |
+| `core/CalendarDates.js` | Strict local date keys, inclusive ranges, Monday grids and deterministic band packing |
+| `services/CalendarStore.qml` | Goal/task validation, stable IDs, range-change guards and atomic JSON persistence |
+| `services/SpotifyService.qml` | Sticky native Spotify selection, metadata, playback state and guarded commands |
+| `services/SpotifyAudioMonitor.qml` | Scoped native capture of an identified Spotify playback stream |
+| `components/SharedText.qml`, `SharedTextField.qml` | Consistent text and editable inputs |
+| `components/TextButton.qml`, `IconButton.qml`, `PlaybackIcon.qml` | Shared hand cursor, hover feedback, accessible actions and local vectors |
+| `components/Notch.qml`, `NotchContour.qml` | One contour for the notch fill, media clipping and open outline |
+| `components/ScreenFrameContour.qml` | Rounded inner desktop opening shared by black fill and frame outline |
+| `components/CircularArtwork.qml`, `CircularProgress.qml`, `PlaybackTimeline.qml` | Reusable music visuals independent of Spotify |
+| `modules/island/IslandWindow.qml` | Screen choice, fixed notch canvas, native input masks and calendar window composition |
+| `modules/island/Island.qml` | Active presentation, notch/music animation, widget layout and single progress timer |
+| `modules/island/OutsideClickCatcher.qml` | Temporary screen-local dismissal surface below interactive windows |
+| `modules/island/ScreenFrameWindow.qml` | Passive opaque frame with rounded inner corners and an empty input mask |
+| `modules/island/DateTimeHeader.qml`, `WidgetsPill.qml` | Local minute clock and ordinary extensible widget composition |
+| `modules/island/ExpandedMusicPanel.qml`, `SpotifyWidget.qml`, `MusicBackdrop.qml` | Music controls, single migrating artwork and backdrop/graph |
+| `modules/calendar/CalendarWindow.qml` | Centered layer-shell window, rounded hit region, local fade and keyboard policy |
+| `modules/calendar/CalendarPanel.qml` | Month/date selection, responsive workspace and editor coordination |
+| `modules/calendar/MonthGrid.qml` | Fixed 42-day grid, weekly range bands, today/selection and overflow |
+| `modules/calendar/DayAgenda.qml` | Virtualized goal headers and day-task rows, ID-scoped edit drafts |
+| `modules/calendar/GoalEditor.qml` | Goal draft, inclusive end preview and task-removal confirmation |
+| `modules/calendar/CalendarTaskRow.qml` | Checkbox, elided title, lazy inline editor, full-title tooltip and actions |
 
-The former `DateTimeNotch.qml` became `DateTimeHeader.qml`: the clock stays local
-to its feature while one separate `Notch` surface can grow around both header
-and music. Reusable artwork, ring, timeline and button components do not import
-Spotify or MPRIS. `Island` supplies their data and routes action signals to the
-service. There is one Spotify service and one artwork/ring item, not two copies
-crossfading between locations.
+Shared visuals do not import Spotify/MPRIS. Feature components receive explicit
+state/store inputs. Quickshell generates the `qs.*` imports and singleton metadata;
+there are no source `qmldir` files. The standalone checklist, its panel and task
+store have been removed. Existing `tasks.json` data is left untouched and is not
+read, migrated or overwritten by the calendar.
 
-## Appearance and placement
+## Calendar
 
-`Config.timeFormat` defaults to `HH:mm`; `dateFormat` to `ddd, d MMM`. Both use
-local Qt date/time formatting. The clock updates once per minute; displaying
-seconds would require changing its precision too.
+The calendar button sits to the right of Spotify and remains available without it.
+Each opening selects today. Navigate with the arrows, choose **Today**, or click
+any visible date, including an adjacent month's dates. Weeks begin on Monday;
+six fixed rows keep the grid steady when goals and tasks change.
 
-The main window is a full-width transparent layer-shell canvas with a fixed
-height large enough for the expanded panel. Only its visible interaction regions
-receive input; unused canvas passes through. It has no top margin, work-area
-reservation. It accepts keyboard input on demand only for To-do and centers only
-the notch. A second, passive
-window draws the static screen frame with an empty input region.
-`Config.screenName: ""` uses the platform default; set an output name such
-as `"eDP-1"` to prefer it. A missing output falls back to the default screen.
+The default window is **70% of screen width and 45% of screen height**, centered
+on the notch's output. Minimum preferences of 860×420 logical pixels are capped
+to fit the screen with 24-pixel margins. At 1920×1080 it is 1344×486. Most width
+belongs to the grid; the selected-day agenda is on the right. Below the stacking
+breakpoint, the grid and agenda stack in a scrolling workspace. Header/navigation
+and status remain outside that scroll. Goal fields and the day agenda scroll
+independently; the form's save action stays visible.
 
-Main appearance tokens in `Theme.qml`:
+**Add goal** starts with the selected date and one day. Enter a name, a valid
+`YYYY-MM-DD` local date, an integer duration from 1 to 30, and a preset or `#RRGGBB`
+color. The start is day one; the form previews the inclusive end date. A one-day
+goal occupies only its start date. Colored, named bands span cells and continue
+in subsequent week rows/months. Stable start-date/ID ordering packs lanes; each
+week compacts goals that still intersect it. `+N` identifies goals beyond the
+available lanes. The selected-day agenda always includes **all** active goals,
+even those behind overflow. Today's purple date disc and the selected cell's
+light outline stay visible above the bands.
 
-| Tokens | Default / purpose |
-| --- | --- |
-| `accentPrimary`, `progressAccent` | Exact `#9D00FF` active accent |
-| `accentForeground`, `accentSecondary`, `accentMuted` | Readable lighter purple, secondary purple and subdued ring track |
-| `surfaceBackground` | Pure black surfaces |
-| `pauseIcon`, `pausedOverlayOpacity` | White `#FFFFFF` bars over a black overlay at 0.30 opacity |
-| `notchHeight` | 42 pixels, reduced once from 44: one pixel less above/below the same text |
-| `notchHorizontalPadding`, `notchVerticalPadding` | 22 / 6; vertical padding remains a minimum for larger font metrics |
-| `notchShoulderWidth`, `notchShoulderHeight` | 30 / 20; horizontal spread is independent of depth and notch height |
-| `notchShoulderCurve`, `notchBottomRadius` | 0.55 tangent control / 30-pixel lower corner radius |
-| `musicShoulderWidth`, `musicShoulderHeight`, `musicShoulderCurve` | 76 / 50 / 0.62 expanded shoulder geometry, blended from the compact values |
-| `notchWidgetsGap` | 16 pixels from the compact body edge, excluding the top shoulder tip |
-| `screenFrameWidth`, `screenFrameColor`, `screenFrameOpacity` | 2 pixels, clock-text color, 0.20 opacity |
-| `screenFrameFill`, `screenFrameInnerRadius` | Opaque black / 18-pixel radius of the desktop opening |
-| `widgetsPillHeight`, `artworkDiameter` | Current minimum / artwork sizes: 36 / 30 pixels (padding can make the pill taller) |
-| `widgetsHorizontalPadding`, `widgetsVerticalPadding` | 4 / 4 |
-| `musicContentWidth`, `musicPadding` | 360 / 20; expanded width includes padding and both shoulders |
-| `musicArtworkDiameter`, `musicArtworkDecodedSize` | 72 logical pixels / 216 decoded pixels |
-| `musicTopGap`, `musicSectionGap`, `musicBottomPadding` | Expanded vertical spacing |
-| `controlIconButtonSize`, `controlIconSize` | 38-pixel hit area / 20-pixel vector grid |
-| `control*`, `timeline*` | Button, timeline, thumb and spacing dimensions; glyph idle/pressed opacity 0.85 / 0.60 |
-| `backgroundArtworkOpacity`, `backgroundDecodedSize`, `backgroundScrimOpacity` | 0.40 / 1024 pixels / 0.12 |
-| `headerShadowOpacity`, `headerShadowExtraHeight` | 0.85 top black gradient, fading out 8 pixels below the header area |
-| `graphOpacity`, `graphBarCount`, `graphHeight`, `graphUpdateInterval` | 0.20 / 32 / 54 pixels / 80 ms; baseline flush with the lower contour |
-| `artworkGlowOpacity`, `artworkGlowBlur`, `artworkGlowSpread` | 0.18 / 12 / 1, fading with expansion |
-| `transitionDuration`, `contentRevealStart` | 240 ms; controls fade with the final 35% of the same reveal coordinate |
+Each active goal shows its name/color, day number and completed-task count.
+Add a task beneath that goal with Enter or the plus icon. Text is trimmed and
+empty tasks are rejected; new tasks are unchecked. Check/uncheck to complete or
+reopen. Completed tasks have both a checkmark and muted strikethrough. Edit inline
+with Enter/confirm to save, or Escape to cancel; delete with the row's trash icon.
+Drafts use task IDs, including when rows are recycled. Long text elides with its
+full title available on hover and in the editor.
 
-`Config.widgetsTopInset` is 2 pixels, balancing the unchanged 38-pixel pill
-against the shorter notch. Sizes are logical pixels; no visual scale transform
-shrinks the interface. Cubic shoulder curves have horizontal top tangents and
-vertical side tangents; their full spread is inside the notch's bounds. The Qt
-curve renderer preserves antialiasing at fractional scaling. Compact pill
-placement uses the body edge: the rounded pill top clears the shoulder, with a
-visible gap.
+Editing a range that excludes dates with tasks first lists **every affected task
+and its date**. Confirm **Remove N tasks and save** to apply that change, or return
+to editing/cancel. The store rechecks the exact reviewed tasks before deleting;
+a stale confirmation cannot remove a newly added or changed task. Remaining dates
+keep their tasks and IDs. Goal deletion explicitly confirms removal of that goal
+and all its tasks; unrelated goals remain intact.
 
-The existing tuned theme values are preserved; this update adds dedicated settings
-for the new features. `screenFrameInnerRadius` defaults to 18 pixels and controls
-the desktop opening only. The frame's outer boundary remains square and flush to
-all physical edges; the corner fills use the same color/opacity as straight edges.
+Escape cancels a goal draft or active task edit first, then closes the calendar.
+The calendar alone requests `WlrKeyboardFocus.OnDemand`; closing immediately sets
+it to `None` and clears its native input mask. No Exclusive keyboard focus is used.
+**On Niri, click inside the calendar to acquire native keyboard focus before
+using the keyboard.** QML selects the appropriate editor within that window.
+Closing or switching to music releases keyboard focus. Calendar/task drafts are
+not committed until their save/add action.
 
-The frame is one continuous visual outline: static side/bottom edges and outer
-top segments join the animated local notch contour. It sweeps down one shoulder,
-around the body, and back up the other; no horizontal border crosses the notch.
-`NotchContour` defines both the fill/clip path and this outline. Stroke centerlines
-are inset by half their width so the entire 2-pixel frame stays on-screen. The
-same join coordinates are used by both windows, including at fractional scales.
-The black surface still reaches y=0 above that inset centerline.
+## Calendar storage
 
-`ScreenFrameContour` defines the static desktop opening for both its opaque black
-fill and the outline. The black border reaches the physical edges, including the
-square outer corners; the **inner opening** has four rounded corners. The outline
-is offset into that fill, with matching corner centers and inner edges. Setting
-`screenFrameOpacity` to zero hides only the colored line: the black corner
-silhouette remains. Both layers share an empty input mask and reserve no work area.
-
-## Expansion and input
-
-Click the compact artwork/ring to open. Hover alone does not open the panel.
-`Island.activePanel` is the single state: empty, `music`, or `todo`.
-`expanded` is derived from it. The last presentation is retained only for closing.
-A bound, interruptible `reveal` value
-animates the notch size, media position/size, and the disappearing Spotify slot.
-The notch stays centered throughout. Its date/time header remains visible.
-Other widgets keep their pill when Spotify moves into the notch.
-
-Geometry and control opacity share one 240 ms transition. Controls fade in during
-the final part of expansion and are enabled only when fully open. Closing reverses
-from the current reveal value and disables controls immediately. The compact
-shoulders blend into a wider, deeper expanded contour. Artwork keeps a constant
-decode size during movement, avoiding per-frame image reloads.
-
-Moving outside does not dismiss. Click an icon to operate a control; the play/pause
-glyph shows the action it will perform. Every button has an accessible action
-name and the existing 38-pixel hit area. There are exactly three controls:
-Previous, Play/Pause, Next. The three-button Row is centered with equal spacing;
-Play/Pause lies on the panel centerline. There is no fourth slot or spacer.
-All backgrounds stay transparent; glyph
-color/opacity supplies hover and pressed feedback. Disabled controls fade to a
-muted state. Pause glyphs remain white, including when the action changes.
-All enabled shared buttons use a pointing hand, including the checklist trigger,
-filters and task actions. The compact music trigger uses the same cursor. Text
-fields retain an I-beam; the seekable timeline uses a horizontal drag cursor.
-Nonblocking HoverHandlers leave button clicks and text selection with the controls.
-
-The main window uses the Wayland **Overlay** layer with bounded animated input
-regions. A transparent **Top**-layer catcher is mapped below it only while the
-panel is open, on the same screen. Inside clicks reach the panel; an outside
-click completes on the catcher and begins collapse. **The first outside click
-is consumed by dismissal.** Waiting for its release ends the compositor's
-pointer grab cleanly. The catcher unmaps as collapse begins, so the next click
-can reach the desktop normally. Other outputs are not covered. No keyboard focus
-is taken by the catcher. Its passive TapHandler retains the press when Qt
-deactivates the focused editor and dismisses after release, avoiding a lost first
-click or a stale pointer grab.
-The catcher and frame reserve no desktop work area and accept no keyboard input. Music and
-the collapsed state use `WlrKeyboardFocus.None`; To-do uses `OnDemand`.
-
-The timeline's normal pointer grab owns a drag that began inside the panel,
-including release outside. That release seeks and leaves the panel open; it is
-not a new outside click. A fresh outside click dismisses afterward. There are no
-hover exit or opening grace timers. Repeated open/close requests reverse the
-same bound animation. Spotify disappearance closes music; To-do remains available.
-Reload resets to the compact state and reloads committed tasks from disk.
-
-## To-do panel and storage
-
-The checklist button sits immediately after Spotify inside `WidgetsPill`, using
-the same floating glyph feedback and a **To-do** tooltip. It remains available
-without Spotify. Click it from music to switch panels; click compact music while
-To-do is open to switch back. There is one notch, one active panel, and one MPRIS
-progress timer. The fixed transparent canvas accommodates the larger panel so
-switching does not reintroduce per-frame Wayland window resizing.
-
-The preferred content width is **504 pixels**, 40% wider than the previous 360.
-`Island` caps the complete notch to the active screen with `todoScreenMargin`
-on each side, including both shoulders and content padding. Music width, compact
-geometry, tuned spacing and the 240 ms reveal duration are unchanged.
-
-The workspace has a left-aligned heading and muted active count, a full-width
-quick-entry field with an inset plus action, compact filters, and one near-black
-grouped list. The header, field and filters stay still while the list scrolls or
-tasks change. A fixed footer holds save status/errors without shifting the list.
-The input and list share a slightly raised surface; task text is off-white,
-counts/completed tasks gray, and selection/checkmarks/focus use purple.
-
-Enter or the add icon adds trimmed, nonempty text, clears the field, and leaves it
-ready for the next task. Each row has a fixed checkbox column, flexible title and
-aligned edit/confirm/delete controls. Hover never changes their dimensions.
-Long titles elide, with the full text available on hover and in the editor. The
-editor occupies the same text column. Completed text is muted and struck through,
-with a purple checkmark. Save edits with Enter or confirm; Escape cancels an edit
-first and closes the panel otherwise. All / Active / Completed filters affect
-presentation only; every action addresses a stable ID. Each filter has an empty state.
-
-`TaskStore.model` is a native `ListModel`; commands change only the affected row.
-`TodoPanel` uses Qt 6.12's `SortFilterProxyModel`/`ValueFilter` and a bounded
-`ListView` with reuse and a small cache. These proxy APIs are technology preview
-in this supported Qt version: recheck them when upgrading Qt. An asynchronous
-loader builds the list after the first geometry transition, then keeps it warm.
-Only the edited row creates a text editor, and only an elided, hovered title
-creates a tooltip. Pooled delegates release editors; the panel retains the draft
-by task ID so scrolling cannot attach it to another task.
-
-To-do enables native `WlrKeyboardFocus.OnDemand`, and focuses the input within
-QML. **On the tested Niri setup, click the text field to acquire native keyboard
-focus after opening**; changing the layer-shell mode alone does not activate the
-window. Native typing, Enter and Escape work after that click. Closing or switching
-to music immediately returns the mode to `None`, releasing keyboard access.
-Exclusive keyboard focus is never used.
-
-New settings are independent of your tuned music/notch values:
-
-| Token | Default / purpose |
-| --- | --- |
-| `todoWidgetSize` | Follows the existing compact artwork diameter |
-| `todoContentWidth`, `todoPadding`, `todoScreenMargin` | 504 preferred content / 20 inner padding / 20 screen margin |
-| `todoTopGap`, `todoBottomPadding`, `todoSectionGap` | 10 / 16 / 10 pixels |
-| `todoListHeight`, `todoRowHeight`, `todoScrollBarWidth` | 220-pixel viewport / 40-pixel rows / 3-pixel scrollbar |
-| `todoActionSize`, `todoFieldHeight`, `todoFontSize` | 30 / 36 / 13 pixels |
-| `todoFieldPadding`, `todoFieldRadius` | 10 / 8 pixels |
-| `todoSurface`, `todoFieldBackground`, `todoSurfaceRadius` | Shared near-black `#111114` surface / input surface / 10-pixel list corners |
-| `todoText`, `todoMutedText`, `todoCompletedText` | Off-white `#EDEBF2` / gray `#96929E` / completed gray |
-| `todoSelectedTint`, `todoHoverTint`, `todoSeparator` | Purple selected filter / faint row hover / faint separators |
-| `todoRowPadding`, `todoHeaderHeight`, `todoFilterHeight`, `todoStatusHeight` | 12 / 28 / 32 / 32 pixels; steady columns and sections |
-| `todoTooltipWidth` | 440-pixel wrapped full-title hint |
-| `panelSwitchFadeDuration`, `tooltipDelay` | 90 / 500 ms |
-
-`TaskStore` uses **`Quickshell.dataDir/tasks.json`**, outside the Git checkout.
-For this checkout and the current default XDG data directory, the exact location is:
+The dedicated file is **`Quickshell.dataDir/calendar.json`**. For this checkout
+with the default XDG directory:
 
 ```text
-/home/phantom/.local/share/quickshell/by-shell/a6a53cc7ffd425e04ed994998a2ce5ec/tasks.json
+/home/phantom/.local/share/quickshell/by-shell/a6a53cc7ffd425e04ed994998a2ce5ec/calendar.json
 ```
 
-This is per-shell data; relocating/renaming the configuration can change its shell
-ID. Back up this file for fresh installations and restore it under the new
-configuration's data directory. A different `XDG_DATA_HOME` changes the base path.
-Use one QP instance (`--no-duplicate`) for a single task file.
+Back it up for reinstallations. The shell ID can change if the checkout is moved
+or renamed; `XDG_DATA_HOME` changes the base directory. Run one QP instance for
+this file. Tasks use stable IDs, a stable goal ID and a local civil date, so two
+active goals or two dates never share a completion state.
 
 ```json
 {
   "version": 1,
+  "goals": [
+    { "id": "goal-id", "name": "Practice", "startDate": "2026-11-17", "duration": 30, "color": "#9D00FF" }
+  ],
   "tasks": [
-    { "id": "stable-id", "text": "Example task", "completed": false }
+    { "id": "task-id", "goalId": "goal-id", "date": "2026-11-17", "text": "First session", "completed": false }
   ]
 }
 ```
 
-Loading is asynchronous and edits are disabled until it finishes. A missing file
-starts empty. Unsupported versions, invalid JSON, malformed tasks and duplicate
-IDs block edits and leave the original file untouched. The panel shows the error
-and a Retry action: back up/repair the file (or move it aside), then retry loading.
-It never silently replaces damaged data with an empty list.
+The store validates the entire file, including duplicate IDs, ranges, colors,
+completion types and task/goal/date references, before publishing data. Loading
+is asynchronous; edits wait for readiness. A missing file starts empty. Invalid
+or unsupported data is preserved, edits are blocked and **Retry** is offered.
+Back up/repair the file or move it aside before retrying; it is never silently
+replaced. Dates are parsed as local civil dates, with noon-based arithmetic and
+UTC day ordinals for counting across daylight-saving boundaries.
 
-Committed changes take a plain JavaScript snapshot of the native model and use
-asynchronous, atomic `FileView` writes. Serialization is deferred/coalesced with
-`Qt.callLater`, outside the action handler; the on-disk schema is unchanged. Only one snapshot
-writes at a time; edits arriving during it are coalesced into the latest next
-snapshot. No task-store timer or polling process runs. Closing the panel keeps
-saves alive in the singleton. Save failures retain pending tasks in memory and
-preserve the previous atomic file; resolve the filesystem problem and click Retry
-before restarting. Retry refreshes FileView's disk cache without replacing pending
-tasks, then writes the latest snapshot. Identical text is handled explicitly
-because FileView skips it without a `saved()` signal. The status clears after all
-pending changes are saved. Filters and unsaved editor drafts are not persisted.
+Native models are canonical; plain JavaScript snapshots feed views and JSON.
+Committed changes coalesce with `Qt.callLater` and use asynchronous, atomic
+`FileView` writes with at most one write in flight. Rapid changes save the latest
+state in order. Identical text is handled because FileView skips its saved signal.
+Save failures preserve pending data in memory and the previous file; resolve the
+filesystem problem and Retry before restarting. Retry rereads the disk cache
+without replacing pending data. Closing the window leaves the store/save alive.
+
+## Appearance and input
+
+Existing music/notch geometry, theme and animation values were kept. Only settings
+used solely by the removed standalone feature were retired; calendar settings
+are independent. Change `core/Theme.qml`:
+
+| Tokens | Purpose |
+| --- | --- |
+| `fontFamily`, `fallbackFontFamily`, `fontSource` | Sharphy preference, fallback and optional portable licensed font |
+| `accentPrimary`, `accentForeground`, `accentMuted` | Exact `#9D00FF`, readable purple and muted purple |
+| `notch*`, `musicShoulder*`, `widgets*`, `artwork*` | Existing tuned notch, shoulders, compact pill and artwork |
+| `screenFrameWidth`, `screenFrameInnerRadius`, `screenFrameFill`, `screenFrameOpacity` | Flush black frame, rounded desktop opening and subtle outline |
+| `transitionDuration`, `contentRevealStart` | Unchanged 240 ms music reveal and content fade |
+| `calendarWidthRatio`, `calendarHeightRatio`, `calendarMinimum*`, `calendarScreenMargin` | Window sizing/bounds |
+| `calendarRadius`, `calendarPadding`, `calendarGap` | Rounded surface and content spacing |
+| `calendarStackBreakpoint`, `calendarGridFraction`, `calendarGridMinimumHeight`, `calendarAgendaMinimumHeight` | Two-column/stacked layout |
+| `calendarBackground`, `calendarSurface`, `calendarText`, `calendarMutedText` | Near-black surfaces, off-white and muted text |
+| `calendarSelectedTint`, `calendarHoverTint`, `calendarSeparator` | Selected date, hover fills and dividers |
+| `calendarGoalColors`, `calendarBand*`, `calendarMaxBands` | Preset colors, range geometry/opacity and overlap capacity |
+| `calendarTask*`, `calendarGoalHeaderHeight`, `calendarActionSize` | Day-agenda rows and action sizes |
+| `calendarTransitionDuration` | Independent 160 ms calendar fade/month transition |
+| `input*` | Shared field dimensions and typography |
+
+`Config.timeFormat` is `HH:mm`, `dateFormat` is `ddd, d MMM`; the local clock uses
+minute precision. `Config.screenName` chooses an output (empty/unmatched means
+the platform default). `Config.widgetsTopInset` retains its tuned value.
+Only the notch is horizontally centered; widget widths never affect it. The
+frame has square outer corners flush to physical edges and four rounded inner
+corners in its **opaque black fill**, even with the outline hidden.
+
+`Island.activePanel` is empty, `music`, or `calendar`. Only music expands the
+notch. Calendar is a separate window, so switching reverses the music reveal
+while mapping/fading the planner. One Spotify item migrates between the compact
+pill and expanded music panel; one 1 Hz progress timer owns both presentations.
+The notch window retains a fixed final music canvas; native window resizing on
+every animation frame previously caused 0.9–1.1 second opens on Niri.
+
+Both interactive windows use the Overlay layer. The temporary full-screen
+Top-layer catcher sits below them on the same output. It uses a passive TapHandler
+and waits for release: **the first outside click is consumed**, then the catcher
+unmaps as closing begins. The next click reaches the desktop. Inside clicks and
+a seek drag released outside do not dismiss. The calendar mask matches its rounded
+body; transparent corners pass to the catcher while open and to the desktop after
+closing. The frame and unused notch canvas remain click-through, with no work-area
+reservation. Enabled buttons have a pointing hand, fields an I-beam and the timeline
+a horizontal drag cursor. Buttons share brief glyph hover/pressed feedback.
 
 ## Background, graph and glow
 
@@ -382,59 +289,6 @@ behind the expanded artwork. It fades with the existing expansion coordinate;
 padding leaves room for its blur. The crisp `#9D00FF` ring, white pause glyph and
 30% artwork shade remain separate from the halo.
 
-## Animation performance
-
-The slow opening was reproduced on the native Niri session before tuning timing.
-A temporary fixture recorded wall-clock geometry/control completion and Qt frame
-intervals, with `qt.scenegraph.time.renderloop` diagnostics. A nominal 260 ms
-geometry animation took roughly **860–1133 ms** on repeated openings, with
-40–100 ms frame gaps. Turning off the backdrop/glow left it slow; fixing the
-Wayland window at its expanded height reduced geometry completion to **274–281
-ms**, while preserving media. This isolated per-frame surface resizing as the
-main bottleneck. The configure/commit synchronization is the likely cause of
-the stalls; Qt reported little actual rendering work, and removing media had
-little effect.
-
-The window now keeps that fixed transparent canvas and changes only the local
-visuals/input regions. The static outer frame is a separate passive surface;
-only its small central contour animates. Glow stays local to the circle, the top
-gradient stays within the header, and the existing scoped graph cadence remains.
-After this fix, the reveal duration was set to 240 ms and the extra sequential
-90 ms control fade removed. Measured first/repeated openings reached geometry
-**and controls in 254–268 ms**, with frame intervals mostly 5–7 ms (maximum 11 ms
-in that run). These are local fixture measurements, not a universal frame-rate
-guarantee.
-
-For later diagnosis, enable Qt's supported scene-graph timings:
-
-```sh
-QSG_RENDER_TIMING=1 quickshell --path . --no-duplicate --no-color \
-  --log-rules 'qt.scenegraph.time.renderloop=true'
-```
-
-Do not animate the layer-shell surface height or the outer frame with `reveal`.
-Use temporary frame instrumentation for profiling; keep frame loops out of the
-runtime project. Continue distinguishing rendering time from compositor waits.
-
-The later to-do slowdown was profiled separately with **1,000 fixture tasks**.
-The original toggle blocked for about 4.7 seconds: approximately 4.6 seconds were
-inside JSON serialization traversing a QML `list<var>`, before the asynchronous
-FileView write even started. Replacing the whole array also reset the filtered
-view, recreating rows with hidden editors and unused tooltip objects. Typing was
-already inexpensive; file I/O itself was asynchronous.
-
-The incremental native model and plain JS snapshot remove that serialization
-cost and keep unaffected delegates alive. Lazy editors/tooltips, bounded reuse,
-and asynchronous first list creation reduce opening work. Row state does not
-determine notch size. In the final native Niri fixture, first/repeated controls
-became enabled at about 206–208 ms within the unchanged 240 ms transition;
-typing 30 characters, scrolling, filtering, toggling and entering edit mode took
-0–2 ms in their handlers. Observed frame intervals remained below 8 ms in that
-run, with 8–9 live rows and at most one editor. Task actions caused zero notch
-geometry changes. Qt frame instrumentation and scene-graph timings were used;
-a standalone QML Profiler was unavailable. These are local stress measurements,
-not guarantees for other machines or unbounded task counts.
-
 ## Spotify, timeline and commands
 
 Discovery requires a native `org.mpris.MediaPlayer2.spotify` service name
@@ -464,160 +318,101 @@ toggle and seeking check the player's advertised capabilities and `CanControl`.
 There is no visible Stop control; the service retains its native `stop()` command
 for future use. Disabled actions are guarded in the service too.
 
-## Adding another widget
+## Extending and checking
 
-Add an ordinary QML child after the checklist button inside `WidgetsPill` in `Island.qml`:
+Add ordinary QML children after `calendarButton` inside `WidgetsPill` in `Island.qml`.
+Give each a sensible implicit size and availability binding. The Row owns placement;
+empty content collapses without a visibility/measurement loop. Interactive additions
+also need explicit hit regions in `IslandWindow`. Keep window configuration separate
+from feature state, service commands separate from reusable visuals, and use shared
+text/button components. New modules can import `qs.modules.calendar`.
 
-```qml
-SharedText {
-    text: "hello"
-    anchors.verticalCenter: parent.verticalCenter
-}
-```
-
-Give custom widgets sensible implicit sizes and a `visible` binding from their
-feature's availability. `Row` owns horizontal positioning. Empty content collapses
-the surface to zero width; do not bind the pill's visibility to its row's size,
-which creates inherited-visibility feedback. Additional widgets retain their
-surface when Spotify expands and never move the notch's center. For a new
-interactive widget, also add its visible hit region in `IslandWindow.qml`.
-
-## Developer checks
-
-Use matching Qt `qmlls`, `qmllint`, and `qmlformat` tools. Bootstrap the supported
-Quickshell language-server integration before launch:
+Bootstrap the generated imports/language-server paths:
 
 ```sh
 touch .qmlls.ini
 quickshell --path .
 ```
 
-Quickshell manages `.qmlls.ini` and generates root-relative `qs.*` modules and
-singleton metadata. The configuration contains machine-specific paths and is
-Git-ignored. Recreate it on a fresh installation and configure your editor to run
-`qmlls`. No CMake project or hand-written source `qmldir` is required.
-
-After launching once in the current login session:
+Use matching Qt `qmlls`, `qmllint`, and `qmlformat`. Quickshell regenerates the
+machine-specific, ignored `.qmlls.ini`; do not add source `qmldir` files. Checks:
 
 ```sh
 scripts/check-qml.sh --format
 scripts/check-qml.sh
 bash -n scripts/check-qml.sh
+QT_QPA_PLATFORM=offscreen QT_QPA_PLATFORMTHEME= /usr/lib/qt6/bin/qmltestrunner -input tests
 ```
 
-The script uses generated import paths and looks for Qt tools in `PATH` or
-common Qt 6 binary directories; set `QT_BIN_DIR` when needed. Known Qt metadata
-warnings remain visible for the three `PanelWindow` types (marked uncreatable)
-and the MPRIS/PipeWire models' `values` members (unresolved).
-Both APIs run in the supported runtime.
-Investigate additional warnings and always pair static checks with a live load.
+The QML script covers `modules/*/*.qml`, including calendar. Set `QT_BIN_DIR` if Qt
+utilities are elsewhere. Known installed-metadata warnings are the four
+`PanelWindow` types marked uncreatable and the native MPRIS/PipeWire `values`
+members; investigate any new category. `tests/tst_CalendarDates.qml` checks strict
+local dates, inclusive 1/30-day ranges, leap days, DST counting, navigation, weekly
+packing and overflow segments. For frame diagnosis, use temporary instrumentation
+and `--log-rules 'qt.scenegraph.time.renderloop=true'`; keep frame loops out of QP.
 
-Verification uses the native Niri session, isolated MPRIS fixtures, rendered
-image checks, and Qt pointer events without changing actual Spotify playback.
-The native click-catcher test uses a small private receiver surface, checking
-that the dismissal click is consumed and the following click reaches that
-surface. The background was verified with both a fixture image and the native
-Spotify track's cover URL, plus black fallback. No playable video is supplied.
-The tested native Spotify stream reports unknown channel positions, so the
-decorative graph was verified, including animation while playing and resting
-while paused. Real peak-history rendering still needs a supported audio stream.
-Rendering was checked at 100% and 125% scale. Three reloads at 125% retained one
-music presentation and one progress timer, with the catcher and backdrop removed
-in the collapsed state. The ordinary project launch also loaded without QML
-errors; lint reports only the metadata warnings described above.
+Calendar replacement verification used isolated data and a private MPRIS fixture.
+Qt interaction checks at 100% and 125% covered the default/stacked layouts,
+one- and 30-day goals, week/month boundaries, overlaps/overflow, task editing,
+completion independence, range confirmation, deletion and restart persistence.
+A 60-task agenda exercised delegate recycling, retained drafts and quick-entry
+focus. Temporary filesystem failures exercised ordered saves, Retry, invalid JSON
+and task dates outside their goal; personal files were not modified. Date tests
+passed in Cairo, New York and Berlin time zones.
 
-The three floating controls, bright-cover header gradient, bottom graph and
-compact body gap were checked at both scales. Pixel comparisons at 125% found
-no missing or doubled frame strokes at the two joins, no border across the notch
-opening, and no change to the static outer frame across opening/closing. Native
-pointer routing confirmed the passive frame does not block the next click after
-outside dismissal. Performance measurements are recorded above.
+Native Niri clicks verified the trigger with Spotify absent, centered dimensions,
+all four rounded window corners, keyboard typing/Enter, Escape priority/focus
+release, outside-click consumption and the following desktop click. Panel
+switching, Spotify disappearing and rapid reversals were checked with a private
+player. Static checks retain only the documented metadata warnings; live loading
+and interaction showed no QML errors or binding loops. Real Spotify commands and
+Sharphy rendering were not exercised; the font is still unavailable.
 
-The earlier task update preserved the starting Theme and Config settings. This
-refinement changes only the requested to-do preferred width and task color roles;
-other pre-existing tuned values, including music/notch geometry and animations,
-still match the saved starting tree. Isolated MPRIS/
-Qt input checks covered tasks, filters, centered music controls, panel switching,
-outside dismissal and restart persistence. Filesystem fixtures exercised failed
-save/retry and invalid-file recovery without writing personal task data. Native
-Niri pointer/keyboard events verified the compact trigger, text entry and focus
-release. A focused-panel outside click was verified to close on the first click,
-consume it, and let the next click reach a private receiver. Rounded inner corners
-and notch/frame joins were checked at 125%. Native Spotify playback was left untouched.
+Manual/runtime checklist:
 
-The current task refinement was checked at 100% and 125% with empty lists, long
-titles/tooltips and enough rows to scroll. Add, inline confirm/Enter/cancel,
-complete/reopen, filtered ID actions, deletion, draft recycling, ordered saves
-and process restart were exercised. Failure/retry and invalid-file recovery used
-temporary data only. Completed tasks retained their IDs and state after restart.
-Rendered pixels confirmed opaque black rounded corners with the outline hidden,
-antialiased inner edges, full outer-edge coverage and clean notch joins at both
-scales. Qt hover events covered all three music actions (including Pause),
-filters, checkbox/add/edit/delete/Retry and the checklist trigger. Native Wayland
-cursor messages confirmed hand shapes for music/filter buttons. A native outside
-click after editing released keyboard focus and consumed dismissal; the next
-click reached the private receiver through the passive frame. Static checks show
-only the known metadata warnings, with no runtime QML errors or binding loops.
+1. Open the calendar with Spotify absent and present; confirm centered size,
+   rounded corners, today/selection, keyboard focus and unchanged notch geometry.
+2. Create one- and 30-day goals across weeks/months, overlap enough for `+N`, and
+   click every relevant day. Compare names, day numbers, colors and task counts.
+3. Add/edit/complete/reopen/delete tasks under overlapping goals and on different
+   dates. Scroll a long agenda while editing; drafts must remain tied to IDs.
+4. Shrink/move a goal over task-bearing days; inspect the affected-task list and
+   cancel/confirm. Verify a stale confirmation cannot discard a later edit.
+5. Restart after Saving clears and verify goals, dates, IDs and completion states.
+   Back up data before testing invalid-file or failed-save recovery.
+6. Test Escape from an editor and the calendar, outside clicks after editing,
+   switching to music, and Spotify closing while the calendar remains open.
+7. Check default and fractional scales, the stacked small-window layout, cursor
+   feedback, and the black frame corners with the colored outline hidden.
+8. Check music controls, seeking across the panel boundary, pause dim/icon, graph,
+   rapid reversals and reloads. No duplicate media/progress timers should appear.
 
-Useful manual checks for later changes:
-
-1. Inspect both shoulder states, the four rounded inner frame corners and your
-   tuned body-to-pill gap at your scale; confirm centering and clean joins throughout transitions.
-2. Open by clicking artwork, then move away: it should remain open. Operate each
-   icon and check hover, pressed, disabled and accessible action-name states.
-3. Drag the timeline outside and release: it should seek and stay open. Click
-   outside afterward: collapse should start, consuming that first click only.
-4. Change tracks while expanded; check the cropped background, circular paused
-   presentation, faint glow and unobtrusive graph. Pause and confirm the graph rests.
-5. Rapidly open/close and close Spotify during expansion. Check capture/graph
-   updates stop on closing and backdrop resources unload after the transition.
-6. Repeat reloads and run the QML checks. Only the position and open-graph timers
-   should repeat; no hidden catcher or duplicate media items should accumulate.
-
-For tasks, also add with Enter and the plus icon, edit/confirm/cancel, toggle under
-each filter, delete, and restart after the Saving status clears. Verify keyboard
-release after outside dismissal and panel switching. Back up task data before
-manually testing file-error recovery. A full desktop reboot was not performed.
-Check I-beam/hand/drag cursors, scroll an edited row out and back, and compare the
-black corner silhouette with `screenFrameOpacity: 0` before restoring its value.
-
-Sharphy rendering still needs its font installed or supplied. Video cannot be
-verified because this integration supplies no playable video source. Native
-Spotify control transitions, multiple-output hotplug and X11 remain separate
-user-session checks; isolated players exercise the command/interaction logic.
+Sharphy metrics still require the actual font. Native Spotify commands, a full
+reboot, output hotplug and X11 are separate session checks; isolated fixture tests
+must not disturb personal playback or write real calendar data.
 
 ## Troubleshooting
 
-- **No music widget:** start desktop Spotify on the same session bus. Check
-  `busctl --user list | rg org.mpris.MediaPlayer2`. Browser Spotify is ignored;
-  sandboxed clients must expose MPRIS to the session.
-- **Missing artwork:** inspect the terminal for URL/file errors; the local fallback
-  and paused presentation work during loading and failure. No API key is needed.
-- **Disabled timeline or controls:** check the player's capabilities and duration;
-  not every player supports every MPRIS action.
-- **Unexpected font:** install Sharphy or configure a licensed font URL/family as
-  described above, then restart. QP intentionally falls back when it is absent.
-- **Unresolved `qs.*` in your editor:** recreate `.qmlls.ini`, launch QP, and restart
-  `qmlls` from the same Qt installation as Quickshell.
+- **No music widget:** desktop Spotify must expose native MPRIS on the session bus;
+  browser metadata is intentionally ignored. Inspect `busctl --user list`.
+- **Missing artwork:** loading/failure uses the local fallback; no API key is needed.
+  This MPRIS integration has no playable Spotify video URL.
+- **Disabled music action:** check native player capabilities and duration.
+- **Calendar typing/Escape:** on Niri first click inside the calendar to focus it.
+  Save/add commits a draft; Escape first cancels an editor before dismissal.
+- **Calendar load/save error:** keep the data file, resolve the reported problem,
+  and Retry. Pending unsaved changes remain in memory; avoid restarting first.
+- **Unexpected font:** install Sharphy or configure its licensed URL/family above.
+- **Unresolved `qs.*`:** bootstrap `.qmlls.ini`, launch once and restart matching `qmlls`.
 
-API references: [Quickshell 0.3.2](https://quickshell.org/docs/v0.3.2/),
-[MPRIS](https://quickshell.org/docs/v0.3.2/types/Quickshell.Services.Mpris/MprisPlayer/),
+Official API references: [Quickshell 0.3.2](https://quickshell.org/docs/v0.3.2/),
+[PanelWindow](https://quickshell.org/docs/v0.3.2/types/Quickshell/PanelWindow/),
+[ShellScreen](https://quickshell.org/docs/v0.3.2/types/Quickshell/ShellScreen/),
 [Region](https://quickshell.org/docs/v0.3.2/types/Quickshell/Region/),
-[Qt 6.12 Text](https://doc.qt.io/qt-6.12/qml-qtquick-text.html),
-[font](https://doc.qt.io/qt-6.12/qml-font.html),
-[PathCubic](https://doc.qt.io/qt-6.12/qml-qtquick-pathcubic.html), and
-[ShapePath.fillItem](https://doc.qt.io/qt-6.12/qml-qtquick-shapes-shapepath.html),
-[RectangularShadow](https://doc.qt.io/qt-6.12/qml-qtquick-effects-rectangularshadow.html), and
-[PwNodePeakMonitor](https://quickshell.org/docs/v0.3.2/types/Quickshell.Services.Pipewire/PwNodePeakMonitor/).
-
-Task/focus API references: [FileView](https://quickshell.org/docs/v0.3.2/types/Quickshell.Io/FileView/),
-[Quickshell.dataDir](https://quickshell.org/docs/v0.3.2/types/Quickshell/Quickshell/),
-[WlrKeyboardFocus](https://quickshell.org/docs/v0.3.2/types/Quickshell.Wayland/WlrKeyboardFocus/).
-
-Task layout/performance references:
-[Todoist quick entry](https://www.todoist.com/help/todoist/features/use-task-quick-add-in-todoist-va4Lhpzz),
-[GNOME boxed lists](https://developer.gnome.org/hig/patterns/containers/boxed-lists.html),
+[FileView](https://quickshell.org/docs/v0.3.2/types/Quickshell.Io/FileView/),
+[WlrKeyboardFocus](https://quickshell.org/docs/v0.3.2/types/Quickshell.Wayland/WlrKeyboardFocus/),
+[MPRIS](https://quickshell.org/docs/v0.3.2/types/Quickshell.Services.Mpris/MprisPlayer/),
 [Qt 6.12 ListView](https://doc.qt.io/qt-6.12/qml-qtquick-listview.html),
-[SortFilterProxyModel](https://doc.qt.io/qt-6.12/qml-qtqml-models-sortfilterproxymodel.html),
-[HoverHandler](https://doc.qt.io/qt-6.12/qml-qtquick-hoverhandler.html), and
-[Qt Quick performance](https://doc.qt.io/qt-6.12/qtquick-performance.html).
+[HoverHandler](https://doc.qt.io/qt-6.12/qml-qtquick-hoverhandler.html),
+[ShapePath](https://doc.qt.io/qt-6.12/qml-qtquick-shapes-shapepath.html).

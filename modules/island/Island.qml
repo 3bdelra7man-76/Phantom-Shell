@@ -11,20 +11,12 @@ Item {
 
     required property bool active
     property string activePanel: ""
-    property string _closingPanel: "music"
-    readonly property bool expanded: activePanel !== ""
-    readonly property string presentedPanel: activePanel || _closingPanel
-    readonly property bool todoOpen: activePanel === "todo"
-    readonly property alias todoPresentation: todo
-    readonly property alias todoTrigger: todoButton
-    // Explicit coordinate dependencies keep the native mask in sync with Row
-    // placement and the animated pill; mapToItem() alone does not track them.
-    readonly property real todoInputX: widgets.x + widgets.contentItem.x + todoButton.x
-    readonly property real todoInputY: widgets.y + widgets.contentItem.y + todoButton.y
-    onActivePanelChanged: {
-        if (activePanel)
-            _closingPanel = activePanel;
-    }
+    readonly property bool expanded: activePanel === "music"
+    readonly property bool calendarOpen: activePanel === "calendar"
+    readonly property alias calendarTrigger: calendarButton
+    // Bind native hit coordinates to the Row and all moving ancestors.
+    readonly property real calendarInputX: widgets.x + widgets.contentItem.x + calendarButton.x
+    readonly property real calendarInputY: widgets.y + widgets.contentItem.y + calendarButton.y
     readonly property alias notchSurface: notch
     readonly property alias musicPresentation: music
     readonly property alias panelBody: panelBounds
@@ -40,26 +32,14 @@ Item {
         const padding = (Theme.musicPadding + Theme.musicShoulderWidth) * 2;
         return Math.max(collapsedWidth, Math.min(width, Theme.musicContentWidth + padding));
     }
-    readonly property real todoExpandedWidth: {
-        const preferred = Theme.todoContentWidth + (Theme.todoPadding + Theme.musicShoulderWidth)
-              * 2;
-        const available = width - Theme.todoScreenMargin * 2;
-        return Math.max(collapsedWidth, Math.min(available, preferred));
-    }
-    readonly property real expandedWidth: presentedPanel === "todo" ? todoExpandedWidth :
-                                                                      musicExpandedWidth
-    readonly property real frameOpeningWidth: Math.max(collapsedWidth, musicExpandedWidth,
-                                                       todoExpandedWidth)
+    readonly property real expandedWidth: musicExpandedWidth
+    readonly property real frameOpeningWidth: Math.max(collapsedWidth, musicExpandedWidth)
     readonly property real compactWidgetsX: width / 2 + collapsedWidth / 2
                                             - Theme.notchShoulderWidth + Theme.notchWidgetsGap
     readonly property real musicExpandedHeight: collapsedHeight + Theme.musicTopGap
                                                 + panel.implicitHeight + Theme.musicBottomPadding
-    readonly property real todoExpandedHeight: collapsedHeight + Theme.todoTopGap
-                                               + todo.implicitHeight + Theme.todoBottomPadding
-    readonly property real canvasHeight: Math.max(musicExpandedHeight, todoExpandedHeight)
-                                         + Theme.screenFrameWidth
-    readonly property real expandedHeight: presentedPanel === "todo" ? todoExpandedHeight :
-                                                                       musicExpandedHeight
+    readonly property real canvasHeight: musicExpandedHeight + Theme.screenFrameWidth
+    readonly property real expandedHeight: musicExpandedHeight
     property real surfaceWidth: expandedWidth
     property real surfaceHeight: expandedHeight
     readonly property bool surfaceSettled: Math.abs(surfaceWidth - expandedWidth) < 0.1 && Math.abs(surfaceHeight
@@ -69,17 +49,7 @@ Item {
                                                                                               - Theme.contentRevealStart))
     // One animated coordinate drives geometry and the single media presentation.
     property real reveal: expanded ? 1 : 0
-    // Panel selection has its own blend so switching midway through expansion
-    // can reverse the same artwork's movement without jumping.
-    property real musicParticipation: presentedPanel === "music" ? 1 : 0
-    readonly property real musicReveal: reveal * musicParticipation
-    Behavior on musicParticipation {
-        enabled: root.reveal > 0
-        NumberAnimation {
-            duration: Theme.transitionDuration
-            easing.type: Easing.InOutCubic
-        }
-    }
+    readonly property real musicReveal: reveal
     Behavior on surfaceWidth {
         enabled: root.reveal > 0
         NumberAnimation {
@@ -102,8 +72,8 @@ Item {
         }
     }
 
-    function openTodo(): void {
-        activePanel = "todo";
+    function openCalendar(): void {
+        activePanel = "calendar";
     }
     function closePanel(): void {
         activePanel = "";
@@ -135,7 +105,7 @@ Item {
         shoulderHeight: root.interpolate(Theme.notchShoulderHeight, Theme.musicShoulderHeight)
         shoulderCurve: root.interpolate(Theme.notchShoulderCurve, Theme.musicShoulderCurve)
         outlineSpan: root.frameOpeningWidth
-        backgroundActive: root.presentedPanel === "music" && (root.expanded || root.reveal > 0)
+        backgroundActive: root.expanded || root.reveal > 0
         background: Component {
             MusicBackdrop {
                 artworkSource: SpotifyService.artworkSource
@@ -169,14 +139,14 @@ Item {
             visible: SpotifyService.available && implicitWidth > 0
         }
         IconButton {
-            id: todoButton
+            id: calendarButton
             anchors.verticalCenter: parent.verticalCenter
-            width: Theme.todoWidgetSize
+            width: Theme.calendarWidgetSize
             height: width
-            glyph: "checklist"
-            actionName: "To-do"
-            tooltipText: "To-do"
-            onClicked: root.openTodo()
+            glyph: "calendar"
+            actionName: "Calendar"
+            tooltipText: "Calendar"
+            onClicked: root.openCalendar()
         }
     }
 
@@ -221,8 +191,7 @@ Item {
         x: notch.x + notch.shoulder
         y: root.collapsedHeight
         width: Math.max(0, notch.width - notch.shoulder * 2)
-        height: Math.max(0, notch.height - y - (root.presentedPanel === "todo" ? Theme.todoBottomPadding :
-                                                                                 Theme.musicBottomPadding))
+        height: Math.max(0, notch.height - y - Theme.musicBottomPadding)
         clip: true
 
         ExpandedMusicPanel {
@@ -232,8 +201,7 @@ Item {
             width: Math.max(0, notch.width - (notch.shoulder + Theme.musicPadding) * 2)
             // Reveal controls during the final part of geometry, without a second
             // sequential fade that delays the useful end of an otherwise fast open.
-            opacity: root.presentedPanel === "music" && root.surfaceSettled ? root.contentOpacity :
-                                                                              0
+            opacity: root.surfaceSettled ? root.contentOpacity : 0
             visible: opacity > 0
             enabled: root.activePanel === "music" && root.reveal === 1 && root.surfaceSettled
             Behavior on opacity {
@@ -256,24 +224,6 @@ Item {
             onNextRequested: SpotifyService.next()
             onToggleRequested: SpotifyService.togglePlayback()
             onSeekRequested: seconds => SpotifyService.seekTo(seconds)
-        }
-
-        TodoPanel {
-            id: todo
-            x: Theme.todoPadding
-            y: Theme.todoTopGap
-            width: Math.max(0, parent.width - Theme.todoPadding * 2)
-            store: TaskStore
-            opacity: root.presentedPanel === "todo" && root.surfaceSettled ? root.contentOpacity : 0
-            visible: opacity > 0
-            enabled: root.activePanel === "todo" && root.reveal === 1 && root.surfaceSettled
-            onCloseRequested: root.closePanel()
-            Behavior on opacity {
-                enabled: root.reveal === 1
-                NumberAnimation {
-                    duration: Theme.panelSwitchFadeDuration
-                }
-            }
         }
     }
 

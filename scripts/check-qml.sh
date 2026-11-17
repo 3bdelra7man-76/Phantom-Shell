@@ -22,7 +22,7 @@ qt_tool() {
 
 formatter=$(qt_tool qmlformat)
 linter=$(qt_tool qmllint)
-files=(shell.qml core/*.qml services/*.qml components/*.qml modules/island/*.qml)
+files=(shell.qml core/*.qml services/*.qml components/*.qml modules/*/*.qml)
 
 case "${1:-}" in
     --format) "$formatter" --inplace "${files[@]}" ;;
